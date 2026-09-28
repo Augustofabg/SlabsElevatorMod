@@ -19,12 +19,9 @@
 
 
 </div>
+
   
 Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGamer/ElevatorMod)**, que adiciona variantes em laje dos elevadores, permitindo construções mais compactas e integradas ao cenário.
-
-Desenvolvido para **Minecraft 1.21.1+** com **NeoForge**.
-
-Este projeto é um addon independente e não possui afiliação oficial com o OpenBlocks Elevator. Todos os créditos pelo mod original pertencem a **vsngarcia** e aos seus colaboradores.
 
 ---
 
@@ -74,62 +71,6 @@ Este projeto é um addon independente e não possui afiliação oficial com o Op
 
 ---
 
-## 📂 Estrutura do Projeto
-
-```
-SlabsElevatorMod/
-├── LICENSE
-├── README.md
-├── build.gradle
-├── gradle.properties
-├── settings.gradle
-├── gradlew / gradlew.bat
-├── gradle/wrapper/
-│   ├── gradle-wrapper.jar
-│   └── gradle-wrapper.properties
-└── src/main/
-    ├── java/net/openslabs/elevatorslabs/
-    │   ├── ElevatorSlabsMod.java               # Classe principal @Mod
-    │   ├── block/
-    │   │   └── ElevatorSlabBlock.java          # Bloco base estendendo SlabBlock
-    │   ├── client/
-    │   │   └── ElevatorSlabsClientHandler.java # Detecção de Jump/Sneak no cliente
-    │   ├── init/
-    │   │   ├── ModBlocks.java                  # DeferredRegister dos 16 blocos
-    │   │   ├── ModItems.java                   # DeferredRegister dos 16 itens
-    │   │   ├── ModCreativeTabs.java            # Aba no modo criativo
-    │   │   └── ModTags.java                    # Definições de Tags
-    │   ├── network/
-    │   │   ├── ElevatorSlabsNetwork.java       # Registro de pacotes NeoForge
-    │   │   ├── TeleportSlabPayload.java        # Record CustomPacketPayload
-    │   │   └── TeleportSlabHandler.java        # Handler de teleporte seguro no servidor
-    │   └── util/
-    │       └── ElevatorSearchHelper.java       # Cálculos de Y, busca vertical e colisão
-    └── resources/
-        ├── META-INF/neoforge.mods.toml         # Manifesto com dependências obrigatórias
-        ├── assets/elevatorslabs/
-        │   ├── blockstates/                    # 16 arquivos de blockstates
-        │   ├── lang/                           # en_us.json e pt_br.json
-        │   └── models/                         # 32 modelos de bloco e 16 de item
-        └── data/
-            ├── c/tags/                         # #c:elevators
-            ├── elevatorid/tags/                # #elevatorid:elevators
-            ├── elevatorslabs/recipe/           # Receitas de conversão
-            └── minecraft/tags/                 # #minecraft:slabs
-```
-
----
-
 ## 🚀 Como Compilar e Executar
 
-Execute no terminal (utilizando JDK 21):
-
-```bash
-# Compilar o arquivo JAR do mod
-./gradlew build
-
-# Executar cliente de teste do Minecraft no ambiente de desenvolvimento
-./gradlew runClient
-```
-
-O arquivo JAR final será gerado em `build/libs/`.
+Este projeto é um addon independente e não possui afiliação oficial com o OpenBlocks Elevator. Todos os créditos pelo mod original pertencem a **vsngarcia** e aos seus colaboradores.
