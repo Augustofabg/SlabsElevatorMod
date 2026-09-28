@@ -1,0 +1,16 @@
+{
+    "type":  "minecraft:crafting_shapeless",
+    "category":  "building",
+    "ingredients":  [
+                        {
+                            "item":  "elevatorid:elevator_yellow"
+                        },
+                        {
+                            "item":  "elevatorslabs:ender_spindle"
+                        }
+                    ],
+    "result":  {
+                   "id":  "elevatorslabs:elevator_slab_yellow",
+                   "count":  2
+               }
+}

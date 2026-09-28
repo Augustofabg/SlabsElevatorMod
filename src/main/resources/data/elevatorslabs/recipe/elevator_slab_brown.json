@@ -1,0 +1,16 @@
+﻿{
+    "type":  "minecraft:crafting_shaped",
+    "category":  "building",
+    "pattern":  [
+                    "###"
+                ],
+    "key":  {
+                "#":  {
+                          "item":  "elevatorid:elevator_brown"
+                      }
+            },
+    "result":  {
+                   "id":  "elevatorslabs:elevator_slab_brown",
+                   "count":  6
+               }
+}

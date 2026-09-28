@@ -1,0 +1,13 @@
+﻿{
+    "variants":  {
+                     "type=bottom":  {
+                                         "model":  "elevatorslabs:block/elevator_slab_blue"
+                                     },
+                     "type=double":  {
+                                         "model":  "elevatorid:block/elevator_blue"
+                                     },
+                     "type=top":  {
+                                      "model":  "elevatorslabs:block/elevator_slab_blue_top"
+                                  }
+                 }
+}

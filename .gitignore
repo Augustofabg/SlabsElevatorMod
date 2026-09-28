@@ -1,0 +1,29 @@
+# Gradle cache and build outputs
+.gradle/
+build/
+bin/
+out/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+.factorypath
+
+# Run directories & logs
+run/
+logs/
+*.log
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Ensure gradle wrapper is tracked
+!gradle/wrapper/gradle-wrapper.jar
+
