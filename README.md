@@ -1,6 +1,30 @@
-# Elevator Slabs (NeoForge 1.21.1)
+<div align="center">
 
-**Elevator Slabs** é um addon oficial/compatível para o mod **OpenBlocks Elevator** (`elevatorid` por vsngarcia) desenvolvido especificamente para **Minecraft 1.21.1+** no ecossistema moderno **NeoForge**, pronto para integração com grandes modpacks como **All The Mods 10 (ATM10)** e **All The Mods 11 (ATM11)**.
+  # Elevator Slabs
+
+  <a href="https://modrinth.com/mod/SEU-MOD">
+    <img height="56" alt="Modrinth" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg">
+  </a>
+  <a href="https://minecraftforge.net">
+    <img alt="curseforge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg">
+  </a>
+
+<br/> 
+
+<img alt="forge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/forge_vector.svg">
+<img alt="fabric" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/fabric_vector.svg">
+<img alt="NeoForge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/neoforge_vector.svg">
+
+
+
+
+</div>
+  
+Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGamer/ElevatorMod)**, que adiciona variantes em laje dos elevadores, permitindo construções mais compactas e integradas ao cenário.
+
+Desenvolvido para **Minecraft 1.21.1+** com **NeoForge**.
+
+Este projeto é um addon independente e não possui afiliação oficial com o OpenBlocks Elevator. Todos os créditos pelo mod original pertencem a **vsngarcia** e aos seus colaboradores.
 
 ---
 
