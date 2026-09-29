@@ -1,7 +1,9 @@
 <div align="center">
 
-  # Elevator Slabs
+ <img width="1000" height="800" alt="image" src="neoforge-1.21.1/src/img/Elevator-29-09-2026.png" />
 
+ <br/> 
+ 
   <a href="https://modrinth.com/mod/SEU-MOD">
     <img height="56" alt="Modrinth" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg">
   </a>
@@ -11,17 +13,14 @@
 
 <br/> 
 
-<img alt="forge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/forge_vector.svg">
-<img alt="fabric" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/fabric_vector.svg">
-<img alt="NeoForge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/neoforge_vector.svg">
 
 
-
+Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGamer/ElevatorMod)**, que adiciona variantes em laje dos elevadores, permitindo construções mais compactas e integradas ao cenário.
 
 </div>
 
 
-Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGamer/ElevatorMod)**, que adiciona variantes em laje dos elevadores, permitindo construções mais compactas e integradas ao cenário.
+
 
 ---
 
@@ -55,13 +54,10 @@ Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGame
 
 ## 🛠️ Tecnologias e Configuração
 
-- **Plataforma**: NeoForge 1.21.1 (`21.1.130`+)
-- **Mod Dev Plugin**: `net.neoforged.moddev` (ModDevGradle `2.0.78`)
-- **Java**: JDK 21 (LTS)
-- **Dependência CurseMaven**:
-  - Project ID: `250832` (OpenBlocks Elevator)
-  - NeoForge 1.21.1 File ID: `6199696` (`elevatorid-neoforge-1.21.1-1.11.4.jar`)
-  - Coordenada: `curse.maven:openblocks-elevator-250832:6199696`
+<img alt="forge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/forge_vector.svg">
+<img alt="fabric" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/fabric_vector.svg">
+<img alt="NeoForge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/supported/neoforge_vector.svg">
+
 
 ---
 
