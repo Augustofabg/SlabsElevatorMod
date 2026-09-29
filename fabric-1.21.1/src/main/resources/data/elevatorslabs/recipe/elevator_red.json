@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " S ",
+    " E ",
+    " S "
+  ],
+  "key": {
+    "S": {
+      "item": "elevatorslabs:elevator_slab_red"
+    },
+    "E": {
+      "item": "elevatorslabs:ender_spindle"
+    }
+  },
+  "result": {
+    "id": "elevatorid:elevator_red",
+    "count": 1
+  }
+}

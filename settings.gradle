@@ -14,5 +14,6 @@ plugins {
 
 rootProject.name = 'ElevatorSlabs'
 
-include 'forge'
-include 'fabric'
+include 'neoforge-1.21.1'
+include 'fabric-1.21.1'
+include 'forge-1.20.1'

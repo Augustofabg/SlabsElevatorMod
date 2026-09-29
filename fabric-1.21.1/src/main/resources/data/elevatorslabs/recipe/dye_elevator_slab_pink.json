@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    {
+      "tag": "elevatorslabs:elevator_slabs"
+    },
+    {
+      "item": "minecraft:pink_dye"
+    }
+  ],
+  "result": {
+    "id": "elevatorslabs:elevator_slab_pink",
+    "count": 1
+  }
+}
