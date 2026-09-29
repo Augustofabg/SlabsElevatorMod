@@ -1,15 +1,20 @@
 <div align="center">
 
  <img width="1000" height="800" alt="Slab_Elevator_logo" src="assets/Slab_Elevator_logo.png" />
-
  <br/> 
- 
   <a href="https://modrinth.com/mod/SEU-MOD">
     <img height="56" alt="Modrinth" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg">
   </a>
   <a href="https://minecraftforge.net">
     <img alt="curseforge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg">
   </a>
+
+  ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub last commit](https://img.shields.io/github/last-commit/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub forks](https://img.shields.io/github/forks/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub Repo stars](https://img.shields.io/github/stars/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+
 
 <br/> 
 
