@@ -77,27 +77,16 @@ public final class ElevatorSlabsClientHandler {
         DyeColor fromColor = ElevatorSearchHelper.getColor(fromState);
 
         int maxRange = 256;
-        boolean sameColor = true;
         try {
             maxRange = Config.GENERAL.range.get();
-            sameColor = Config.GENERAL.sameColor.get();
         } catch (Throwable ignored) {}
 
+        // Inter-colors: as 16 cores se comunicam livremente entre si
         ElevatorSearchHelper.TargetResult target =
-                ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, sameColor);
+                ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, false);
 
         if (target != null) {
-            BlockState toState = target.state();
-
-            // Bidirectional Interoperability:
-            // If both origin and target are standard ElevatorBlock (full block), let elevatorid handle it.
-            // If either origin or target is an ElevatorSlabBlock, handle via our TeleportSlabPayload.
-            boolean bothStandardBlocks = (fromState.getBlock() instanceof ElevatorBlockBase)
-                    && (toState.getBlock() instanceof ElevatorBlockBase);
-
-            if (!bothStandardBlocks || fromState.getBlock() instanceof ElevatorSlabBlock || toState.getBlock() instanceof ElevatorSlabBlock) {
-                PacketDistributor.sendToServer(new TeleportSlabPayload(fromPos, target.pos()));
-            }
+            PacketDistributor.sendToServer(new TeleportSlabPayload(fromPos, target.pos()));
         }
     }
 }

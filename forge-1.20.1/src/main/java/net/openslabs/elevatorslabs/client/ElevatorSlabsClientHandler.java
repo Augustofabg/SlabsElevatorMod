@@ -77,24 +77,16 @@ public final class ElevatorSlabsClientHandler {
         DyeColor fromColor = ElevatorSearchHelper.getColor(fromState);
 
         int maxRange = 256;
-        boolean sameColor = true;
         try {
             maxRange = ModConfig.GENERAL.range.get();
-            sameColor = ModConfig.GENERAL.sameColor.get();
         } catch (Throwable ignored) {}
 
+        // Inter-colors: as 16 cores se comunicam livremente entre si
         ElevatorSearchHelper.TargetResult target =
-                ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, sameColor);
+                ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, false);
 
         if (target != null) {
-            BlockState toState = target.state();
-
-            boolean bothStandardBlocks = (fromState.getBlock() instanceof ElevatorBlock)
-                    && (toState.getBlock() instanceof ElevatorBlock);
-
-            if (!bothStandardBlocks || fromState.getBlock() instanceof ElevatorSlabBlock || toState.getBlock() instanceof ElevatorSlabBlock) {
-                ElevatorSlabsNetwork.CHANNEL.sendToServer(new TeleportSlabPacket(fromPos, target.pos()));
-            }
+            ElevatorSlabsNetwork.CHANNEL.sendToServer(new TeleportSlabPacket(fromPos, target.pos()));
         }
     }
 }

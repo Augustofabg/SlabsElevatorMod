@@ -65,29 +65,19 @@ public final class ElevatorSlabsClientHandler {
         DyeColor fromColor = ElevatorSearchHelper.getColor(fromState);
 
         int maxRange = 256;
-        boolean sameColor = true;
         try {
             Class<?> cfgClass = Class.forName("com.vsngarcia.Config");
             Object general = cfgClass.getField("GENERAL").get(null);
             Object rangeObj = general.getClass().getField("range").get(general);
             maxRange = (Integer) rangeObj.getClass().getMethod("get").invoke(rangeObj);
-
-            Object sameColorObj = general.getClass().getField("sameColor").get(general);
-            sameColor = (Boolean) sameColorObj.getClass().getMethod("get").invoke(sameColorObj);
         } catch (Throwable ignored) {}
 
+        // Inter-colors: as 16 cores se comunicam livremente entre si
         ElevatorSearchHelper.TargetResult target =
-                ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, sameColor);
+                ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, false);
 
         if (target != null) {
-            BlockState toState = target.state();
-
-            boolean bothStandardBlocks = (fromState.getBlock() instanceof ElevatorBlock)
-                    && (toState.getBlock() instanceof ElevatorBlock);
-
-            if (!bothStandardBlocks || fromState.getBlock() instanceof ElevatorSlabBlock || toState.getBlock() instanceof ElevatorSlabBlock) {
-                ClientPlayNetworking.send(new TeleportSlabPayload(fromPos, target.pos()));
-            }
+            ClientPlayNetworking.send(new TeleportSlabPayload(fromPos, target.pos()));
         }
     }
 }

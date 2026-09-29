@@ -58,17 +58,8 @@ public final class TeleportSlabHandler {
                 return;
             }
 
-            // Check color matching config from elevatorid
-            boolean sameColor = true;
-            try {
-                sameColor = Config.GENERAL.sameColor.get();
-            } catch (Throwable ignored) {}
-
-            DyeColor fromColor = ElevatorSearchHelper.getColor(fromState);
-            DyeColor toColor = ElevatorSearchHelper.getColor(toState);
-            if (sameColor && fromColor != null && toColor != null && fromColor != toColor) {
-                return;
-            }
+            // 2. Inter-colors: as 16 cores se comunicam livremente entre si (branco conecta com vermelho, azul, etc.)
+            // Nenhum bloqueio por diferenca de cor entre fromState e toState.
 
             // Precision destination calculation
             double targetYOffset = ElevatorSearchHelper.getYOffset(toState);
