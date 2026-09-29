@@ -1,0 +1,51 @@
+plugins {
+    id 'fabric-loom' version '1.8-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = "${mod_version}+mc1.21.1-fabric"
+group = mod_group_id
+
+base {
+    archivesName = "${mod_id}-fabric-1.21.1"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+        name = "CurseMaven"
+        url = "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+    maven {
+        url = "https://maven.fabricmc.net/"
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:1.21.1"
+    mappings loom.officialMojangMappings()
+
+    modImplementation "net.fabricmc:fabric-loader:0.16.9"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.107.0+1.21.1"
+
+    // OpenBlocks Elevator for Fabric 1.21.1 via CurseMaven (Project ID: 250832, File ID: 5552108)
+    modImplementation "curse.maven:openblocks-elevator-250832:5552108"
+}
+
+processResources {
+    var modVersion = project.version.toString()
+    inputs.property "version", modVersion
+    filesMatching("fabric.mod.json") {
+        expand "version": modVersion
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

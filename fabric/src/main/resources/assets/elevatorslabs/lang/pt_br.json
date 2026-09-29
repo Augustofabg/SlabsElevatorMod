@@ -1,0 +1,21 @@
+{
+  "itemGroup.elevatorslabs": "Lajes de Elevador",
+  "item.elevatorslabs.ender_spindle": "Fuso do Ender",
+  "item.elevator_slabs.ender_spindle": "Fuso do Ender",
+  "block.elevatorslabs.elevator_slab_white": "Laje de Elevador Branca",
+  "block.elevatorslabs.elevator_slab_orange": "Laje de Elevador Laranja",
+  "block.elevatorslabs.elevator_slab_magenta": "Laje de Elevador Magenta",
+  "block.elevatorslabs.elevator_slab_light_blue": "Laje de Elevador Azul Claro",
+  "block.elevatorslabs.elevator_slab_yellow": "Laje de Elevador Amarela",
+  "block.elevatorslabs.elevator_slab_lime": "Laje de Elevador Verde Limão",
+  "block.elevatorslabs.elevator_slab_pink": "Laje de Elevador Rosa",
+  "block.elevatorslabs.elevator_slab_gray": "Laje de Elevador Cinza",
+  "block.elevatorslabs.elevator_slab_light_gray": "Laje de Elevador Cinza Claro",
+  "block.elevatorslabs.elevator_slab_cyan": "Laje de Elevador Ciano",
+  "block.elevatorslabs.elevator_slab_purple": "Laje de Elevador Roxa",
+  "block.elevatorslabs.elevator_slab_blue": "Laje de Elevador Azul",
+  "block.elevatorslabs.elevator_slab_brown": "Laje de Elevador Marrom",
+  "block.elevatorslabs.elevator_slab_green": "Laje de Elevador Verde",
+  "block.elevatorslabs.elevator_slab_red": "Laje de Elevador Vermelha",
+  "block.elevatorslabs.elevator_slab_black": "Laje de Elevador Preta"
+}

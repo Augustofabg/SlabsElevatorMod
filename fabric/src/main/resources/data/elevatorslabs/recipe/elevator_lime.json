@@ -1,0 +1,21 @@
+﻿{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    " S ",
+    " P ",
+    " S "
+  ],
+  "key": {
+    "S": {
+      "item": "elevatorslabs:elevator_slab_lime"
+    },
+    "P": {
+      "item": "minecraft:ender_pearl"
+    }
+  },
+  "result": {
+    "id": "elevatorid:elevator_lime",
+    "count": 1
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "elevatorslabs:elevator_slab_white",
+    "elevatorslabs:elevator_slab_orange",
+    "elevatorslabs:elevator_slab_magenta",
+    "elevatorslabs:elevator_slab_light_blue",
+    "elevatorslabs:elevator_slab_yellow",
+    "elevatorslabs:elevator_slab_lime",
+    "elevatorslabs:elevator_slab_pink",
+    "elevatorslabs:elevator_slab_gray",
+    "elevatorslabs:elevator_slab_light_gray",
+    "elevatorslabs:elevator_slab_cyan",
+    "elevatorslabs:elevator_slab_purple",
+    "elevatorslabs:elevator_slab_blue",
+    "elevatorslabs:elevator_slab_brown",
+    "elevatorslabs:elevator_slab_green",
+    "elevatorslabs:elevator_slab_red",
+    "elevatorslabs:elevator_slab_black"
+  ]
+}

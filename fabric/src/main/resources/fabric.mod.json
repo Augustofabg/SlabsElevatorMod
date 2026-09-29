@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "elevatorslabs",
+  "version": "${version}",
+  "name": "Elevator Slabs",
+  "description": "Adds slab variants for OpenBlocks Elevator with seamless vertical teleportation and bidirectional compatibility.",
+  "authors": [
+    "Elevator Slabs Contributors"
+  ],
+  "contact": {
+    "homepage": "https://github.com/openslabs/elevatorslabs",
+    "sources": "https://github.com/openslabs/elevatorslabs",
+    "issues": "https://github.com/openslabs/elevatorslabs/issues"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.openslabs.elevatorslabs.ElevatorSlabsMod"
+    ],
+    "client": [
+      "net.openslabs.elevatorslabs.client.ElevatorSlabsClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "elevatorid": "*"
+  }
+}

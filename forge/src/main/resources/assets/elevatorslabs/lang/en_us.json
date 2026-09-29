@@ -1,0 +1,21 @@
+{
+  "itemGroup.elevatorslabs": "Elevator Slabs",
+  "item.elevatorslabs.ender_spindle": "Ender Spindle",
+  "item.elevator_slabs.ender_spindle": "Ender Spindle",
+  "block.elevatorslabs.elevator_slab_white": "White Elevator Slab",
+  "block.elevatorslabs.elevator_slab_orange": "Orange Elevator Slab",
+  "block.elevatorslabs.elevator_slab_magenta": "Magenta Elevator Slab",
+  "block.elevatorslabs.elevator_slab_light_blue": "Light Blue Elevator Slab",
+  "block.elevatorslabs.elevator_slab_yellow": "Yellow Elevator Slab",
+  "block.elevatorslabs.elevator_slab_lime": "Lime Elevator Slab",
+  "block.elevatorslabs.elevator_slab_pink": "Pink Elevator Slab",
+  "block.elevatorslabs.elevator_slab_gray": "Gray Elevator Slab",
+  "block.elevatorslabs.elevator_slab_light_gray": "Light Gray Elevator Slab",
+  "block.elevatorslabs.elevator_slab_cyan": "Cyan Elevator Slab",
+  "block.elevatorslabs.elevator_slab_purple": "Purple Elevator Slab",
+  "block.elevatorslabs.elevator_slab_blue": "Blue Elevator Slab",
+  "block.elevatorslabs.elevator_slab_brown": "Brown Elevator Slab",
+  "block.elevatorslabs.elevator_slab_green": "Green Elevator Slab",
+  "block.elevatorslabs.elevator_slab_red": "Red Elevator Slab",
+  "block.elevatorslabs.elevator_slab_black": "Black Elevator Slab"
+}
