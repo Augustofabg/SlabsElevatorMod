@@ -20,7 +20,7 @@
 
 </div>
 
-  
+
 Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGamer/ElevatorMod)**, que adiciona variantes em laje dos elevadores, permitindo construções mais compactas e integradas ao cenário.
 
 ---
@@ -28,33 +28,27 @@ Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGame
 ## 🌟 Funcionalidades e Mecânicas
 
 - **16 Variações de Cores**: Inclui todas as 16 cores de corantes do Minecraft, em paridade visual e mecânica com o mod base.
+
+   <img width="352" height="164" alt="image" src="https://github.com/user-attachments/assets/6dacfa90-f283-4287-81d2-8e3cdb9c7dfd" />
+
 - **Lógica de Teleporte Bidirecional**:
   - Pressionar **Espaço (Jump)** teletransporta para o elevador ou laje de mesma cor acima.
   - Pressionar **Shift (Sneak)** teletransporta para o elevador ou laje de mesma cor abaixo.
   - Interoperabilidade total: teletransporte suave de **Laje ⇄ Bloco Completo** e **Laje ⇄ Laje**.
-- **Cálculo de Altura Preciso (Y Offset)**:
-  - **Laje Inferior (`BOTTOM`)**: Posiciona os pés do jogador exatamente em `Y + 0.5`.
-  - **Laje Superior (`TOP`) / Laje Dupla (`DOUBLE`)**: Posiciona os pés do jogador em `Y + 1.0`.
-  - **Bloco Original (`ElevatorBlock`)**: Posiciona os pés do jogador em `Y + 1.0`.
-- **Prevenção de Sufocamento e Colisão**:
-  - Verificação dinâmica de colisão da bounding box (`level.noCollision`) e verificação de blocos opacos sufocantes na cabeça/olhos do jogador no destino.
-- **Tags de Compatibilidade**:
-  - `elevatorid:elevators` e `c:elevators` declarados para blocos e itens.
-  - `minecraft:slabs` para compatibilidade com outros mods de arquitetura e ferramentas.
-- **Item Utilitário Ender Cleaver**:
+
+- **Ender Cleaver**:
   - Durabilidade de 15 usos. Permanece na bancada de trabalho (`crafting remainder`) consumindo 1 ponto de dano por operação.
-  - Fabricado com 2 linhas e 1 pérola do fim em padrão diagonal (`"  S", " P ", "S  "`).
   - Usado para fatiar 1 bloco de elevador em 2 lajes (`elevatorslabs:elevator_slab_<cor>`).
+ 
+  
 - **Tela de Configuração Completa (Elevator Options GUI)**:
-  - Aberta ao clicar com o botão direito na Elevator Slab com a mão vazia ou agachado (`sneak + use`).
+  - Aberta ao clicar com o botão direito na Elevator Slab com a mão vazia ou agachado.
   - Checkbox **Directional**: Força a rotação do jogador para a orientação configurada ao ser teleportado.
-  - Seletor em Cruz de **Pontos Cardeais (N, E, S, W)**: Destaque visual em Verde brilhante (`#55FF55`) para a direção selecionada e Branco (`#FFFFFF`) para as inativas.
   - Checkbox **Hide Arrow**: Oculta ou exibe a seta indicativa na laje.
   - Botão **Remove Camouflage**: Limpa o bloco camuflado e devolve-o ao inventário do jogador.
-  - Sincronização instantânea entre Client e Server via pacotes de rede NeoForge (`UpdateSlabOptionsPayload`) e persistência NBT na `ElevatorSlabBlockEntity`.
+
 - **Receitas de Crafting**:
   - 1 Elevador original + 1 Ender Cleaver ➔ 2 Elevator Slabs (o cutelo perde 1 ponto de dano).
-  - 3 Elevadores originais em linha horizontal ➔ 6 Elevator Slabs.
   - 2 Elevator Slabs em linha vertical ➔ 1 Elevador completo.
 
 ---
