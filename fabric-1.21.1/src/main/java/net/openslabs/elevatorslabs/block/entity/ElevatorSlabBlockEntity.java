@@ -160,6 +160,10 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
                 }
             } catch (Exception ignored) {}
         }
+
+        if (this.level != null && this.level.isClientSide) {
+            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), 3);
+        }
     }
 
     @Override

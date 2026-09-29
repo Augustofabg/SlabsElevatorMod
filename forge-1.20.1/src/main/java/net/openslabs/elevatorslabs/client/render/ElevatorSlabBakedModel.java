@@ -84,6 +84,17 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
             return this.baseModel.getQuads(state, side, rand, ModelData.EMPTY, renderType);
         }
 
+        Boolean appliedAsFull = extraData.get(ElevatorSlabBlockEntity.APPLIED_AS_FULL_BLOCK);
+        net.minecraft.world.level.block.Block fullBlock = extraData.get(ElevatorSlabBlockEntity.FULL_BLOCK_SOURCE);
+        if (Boolean.TRUE.equals(appliedAsFull)) {
+            if (fullBlock != null) {
+                return getCamoQuads(fullBlock.defaultBlockState(), state, side, rand, renderType);
+            }
+            if (camoBottom != null && camoBottom.equals(camoTop)) {
+                return getCamoQuads(camoBottom, state, side, rand, renderType);
+            }
+        }
+
         // If covered by a full block that has no slab variant (e.g. Wool, Concrete, Obsidian):
         if (camoBottom != null && camoBottom.equals(camoTop) && !camoBottom.hasProperty(SlabBlock.TYPE)) {
             return getCamoQuads(camoBottom, state, side, rand, renderType);
@@ -242,6 +253,24 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
                 needsBase = true;
             }
         } else { // DOUBLE
+            Boolean appliedAsFull = data.get(ElevatorSlabBlockEntity.APPLIED_AS_FULL_BLOCK);
+            net.minecraft.world.level.block.Block fullBlock = data.get(ElevatorSlabBlockEntity.FULL_BLOCK_SOURCE);
+            if (Boolean.TRUE.equals(appliedAsFull)) {
+                BlockState fullState = fullBlock != null ? fullBlock.defaultBlockState() : (camoBottom != null ? camoBottom : camoTop);
+                if (fullState != null) {
+                    BakedModel m = Minecraft.getInstance().getBlockRenderer().getBlockModel(fullState);
+                    if (m != null && m != this && !(m instanceof ElevatorSlabBakedModel)) {
+                        types = ChunkRenderTypeSet.union(types, m.getRenderTypes(fullState, rand, ModelData.EMPTY));
+                    } else {
+                        needsBase = true;
+                    }
+                    if (needsBase || types.isEmpty()) {
+                        types = ChunkRenderTypeSet.union(types, this.baseModel.getRenderTypes(state, rand, ModelData.EMPTY));
+                    }
+                    return types;
+                }
+            }
+
             if (camoBottom != null) {
                 BakedModel m = Minecraft.getInstance().getBlockRenderer().getBlockModel(camoBottom);
                 if (m != null && m != this && !(m instanceof ElevatorSlabBakedModel)) {

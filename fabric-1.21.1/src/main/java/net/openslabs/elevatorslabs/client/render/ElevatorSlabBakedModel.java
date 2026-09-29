@@ -95,6 +95,18 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
             return;
         }
 
+        if (slabTile.isAppliedAsFullBlock()) {
+            net.minecraft.world.level.block.Block fullBlock = slabTile.getFullBlockSource();
+            if (fullBlock != null) {
+                emitCamoQuads(blockView, fullBlock.defaultBlockState(), state, pos, randomSupplier, context);
+                return;
+            }
+            if (camoBottom != null && camoBottom.equals(camoTop)) {
+                emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
+                return;
+            }
+        }
+
         // If covered by a full block that has no slab variant (e.g. Wool, Concrete, Obsidian):
         if (camoBottom != null && camoBottom.equals(camoTop) && !camoBottom.hasProperty(SlabBlock.TYPE)) {
             emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);

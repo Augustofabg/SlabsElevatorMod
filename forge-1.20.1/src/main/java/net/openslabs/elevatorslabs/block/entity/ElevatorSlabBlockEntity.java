@@ -37,6 +37,8 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider
     public static final ModelProperty<BlockState> CAMO_BOTTOM = new ModelProperty<>();
     public static final ModelProperty<BlockState> CAMO_TOP = new ModelProperty<>();
     public static final ModelProperty<BlockState> CAMO_STATE = new ModelProperty<>();
+    public static final ModelProperty<Boolean> APPLIED_AS_FULL_BLOCK = new ModelProperty<>();
+    public static final ModelProperty<Block> FULL_BLOCK_SOURCE = new ModelProperty<>();
 
     private boolean directional = false;
     private Direction facing = Direction.NORTH;
@@ -193,6 +195,8 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider
         return ModelData.builder()
                 .with(CAMO_BOTTOM, this.camouflagedBottomState)
                 .with(CAMO_TOP, this.camouflagedTopState)
+                .with(APPLIED_AS_FULL_BLOCK, this.appliedAsFullBlock)
+                .with(FULL_BLOCK_SOURCE, this.fullBlockSource)
                 .build();
     }
 

@@ -84,6 +84,12 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
             return this.baseModel.getQuads(state, side, rand, ModelData.EMPTY, renderType);
         }
 
+        Boolean isFull = extraData.get(ElevatorSlabBlockEntity.APPLIED_AS_FULL_BLOCK);
+        net.minecraft.world.level.block.Block sourceBlock = extraData.get(ElevatorSlabBlockEntity.FULL_BLOCK_SOURCE);
+        if (Boolean.TRUE.equals(isFull) && sourceBlock != null) {
+            return getCamoQuads(sourceBlock.defaultBlockState(), state, side, rand, renderType);
+        }
+
         // If covered by a full block that has no slab variant (e.g. Wool, Concrete, Obsidian):
         if (camoBottom != null && camoBottom.equals(camoTop) && !camoBottom.hasProperty(SlabBlock.TYPE)) {
             return getCamoQuads(camoBottom, state, side, rand, renderType);
