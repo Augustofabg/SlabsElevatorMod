@@ -209,6 +209,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider
         return ModelData.builder()
                 .with(CAMO_BOTTOM, this.camouflagedBottomState)
                 .with(CAMO_TOP, this.camouflagedTopState)
+                .with(CAMO_STATE, getCamouflagedBlock())
                 .with(APPLIED_AS_FULL_BLOCK, this.appliedAsFullBlock)
                 .with(FULL_BLOCK_SOURCE, this.fullBlockSource)
                 .build();
