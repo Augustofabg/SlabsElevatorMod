@@ -1,6 +1,6 @@
 <div align="center">
 
- <img width="1000" height="800" alt="image" src="assets/Slab_Elevator_logo.png" />
+ <img width="1000" height="800" alt="Slab_Elevator_logo" src="assets/Slab_Elevator_logo.png" />
 
  <br/> 
  
@@ -28,7 +28,9 @@ Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGame
 
 - **16 Variações de Cores**: Inclui todas as 16 cores de corantes do Minecraft, em paridade visual e mecânica com o mod base.
 
-   <img width="352" height="164" alt="image" src="https://github.com/user-attachments/assets/6dacfa90-f283-4287-81d2-8e3cdb9c7dfd" />
+<div align="center">
+   <img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/6dacfa90-f283-4287-81d2-8e3cdb9c7dfd" />
+</div>
 
 - **Lógica de Teleporte Bidirecional**:
   - Pressionar **Espaço (Jump)** teletransporta para o elevador ou laje de mesma cor acima.
