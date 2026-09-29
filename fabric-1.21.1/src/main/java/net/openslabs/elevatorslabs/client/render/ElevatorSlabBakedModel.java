@@ -9,18 +9,19 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
+import net.openslabs.elevatorslabs.block.ElevatorSlabBlock;
 import net.openslabs.elevatorslabs.block.entity.ElevatorSlabBlockEntity;
 
 import java.util.function.Supplier;
 
 /**
  * Custom Fabric ForwardingBakedModel for Elevator Slabs.
- * Delegates rendering to the camouflaged slab model when disguised,
- * strictly preventing recursive self-rendering and StackOverflowError.
+ * Delegates rendering to camouflaged slab models partitioned strictly by SlabType (BOTTOM, TOP, DOUBLE).
  */
 public class ElevatorSlabBakedModel extends ForwardingBakedModel {
 
@@ -40,15 +41,16 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
         return false;
     }
 
-    private BlockState adaptCamoState(BlockState camoState, BlockState elevatorState) {
-        if (camoState == null || elevatorState == null) {
-            return camoState;
+    private BlockState adaptCamoState(BlockState camoState, SlabType half) {
+        if (camoState == null) {
+            return null;
         }
-        if (elevatorState.hasProperty(SlabBlock.TYPE) && camoState.hasProperty(SlabBlock.TYPE)) {
-            camoState = camoState.setValue(SlabBlock.TYPE, elevatorState.getValue(SlabBlock.TYPE));
+        if (camoState.hasProperty(SlabBlock.TYPE)) {
+            return camoState.setValue(SlabBlock.TYPE, half);
         }
-        if (elevatorState.hasProperty(SlabBlock.WATERLOGGED) && camoState.hasProperty(SlabBlock.WATERLOGGED)) {
-            camoState = camoState.setValue(SlabBlock.WATERLOGGED, elevatorState.getValue(SlabBlock.WATERLOGGED));
+        SlabBlock slab = ElevatorSlabBlock.findCorrespondingSlab(camoState.getBlock());
+        if (slab != null) {
+            return slab.defaultBlockState().setValue(SlabBlock.TYPE, half);
         }
         return camoState;
     }
@@ -67,103 +69,94 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
             return;
         }
 
-        SlabType type = state.hasProperty(SlabBlock.TYPE) ? state.getValue(SlabBlock.TYPE) : SlabType.BOTTOM;
-        BlockState camoBottom = slabTile.getCamouflagedBottom();
-        BlockState camoTop = slabTile.getCamouflagedTop();
+        SlabType slabType = state.hasProperty(SlabBlock.TYPE) ? state.getValue(SlabBlock.TYPE) : SlabType.BOTTOM;
+        BlockState bottomCamouflage = slabTile.getCamouflagedBottomState();
+        BlockState topCamouflage = slabTile.getCamouflagedTopState();
 
-        if (type == SlabType.BOTTOM) {
-            if (camoBottom != null) {
-                if (!camoBottom.hasProperty(SlabBlock.TYPE)) {
-                    context.pushTransform(ElevatorSlabBakedModel::isBottomHalfQuad);
-                    emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
-                    context.popTransform();
-                } else {
-                    emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
+        // CASO 1: LAJE INFERIOR (BOTTOM)
+        if (slabType == SlabType.BOTTOM) {
+            if (bottomCamouflage != null && !bottomCamouflage.isAir()) {
+                emitTransformedQuads(blockView, bottomCamouflage, SlabType.BOTTOM, pos, randomSupplier, context, state);
+            } else {
+                emitBaseSlabQuads(blockView, state, SlabType.BOTTOM, pos, randomSupplier, context);
+            }
+            return;
+        }
+
+        // CASO 2: LAJE SUPERIOR (TOP)
+        else if (slabType == SlabType.TOP) {
+            if (topCamouflage != null && !topCamouflage.isAir()) {
+                emitTransformedQuads(blockView, topCamouflage, SlabType.TOP, pos, randomSupplier, context, state);
+            } else {
+                emitBaseSlabQuads(blockView, state, SlabType.TOP, pos, randomSupplier, context);
+            }
+            return;
+        }
+
+        // CASO 3: LAJE DUPLA (DOUBLE)
+        else if (slabType == SlabType.DOUBLE) {
+            if (slabTile.isAppliedAsFullBlock()) {
+                Block fullBlock = slabTile.getFullBlockSource();
+                if (fullBlock != null) {
+                    BlockState fullState = fullBlock.defaultBlockState();
+                    BakedModel fullModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(fullState);
+                    if (fullModel != null && fullModel != this && !(fullModel instanceof ElevatorSlabBakedModel)) {
+                        fullModel.emitBlockQuads(blockView, fullState, pos, randomSupplier, context);
+                        return;
+                    }
                 }
-                return;
             }
-            super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
-            return;
-        }
 
-        if (type == SlabType.TOP) {
-            if (camoTop != null) {
-                if (!camoTop.hasProperty(SlabBlock.TYPE)) {
-                    context.pushTransform(ElevatorSlabBakedModel::isTopHalfQuad);
-                    emitCamoQuads(blockView, camoTop, state, pos, randomSupplier, context);
-                    context.popTransform();
-                } else {
-                    emitCamoQuads(blockView, camoTop, state, pos, randomSupplier, context);
-                }
-                return;
+            // Metade inferior
+            if (bottomCamouflage != null && !bottomCamouflage.isAir()) {
+                emitTransformedQuads(blockView, bottomCamouflage, SlabType.BOTTOM, pos, randomSupplier, context, state);
+            } else {
+                emitBaseSlabQuads(blockView, state, SlabType.BOTTOM, pos, randomSupplier, context);
             }
-            super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
-            return;
-        }
 
-        // SlabType.DOUBLE:
-        if (camoBottom == null && camoTop == null) {
-            super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
-            return;
-        }
-
-        if (slabTile.isAppliedAsFullBlock()) {
-            net.minecraft.world.level.block.Block fullBlock = slabTile.getFullBlockSource();
-            if (fullBlock != null) {
-                emitCamoQuads(blockView, fullBlock.defaultBlockState(), state, pos, randomSupplier, context);
-                return;
-            }
-            if (camoBottom != null && camoBottom.equals(camoTop)) {
-                emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
-                return;
+            // Metade superior
+            if (topCamouflage != null && !topCamouflage.isAir()) {
+                emitTransformedQuads(blockView, topCamouflage, SlabType.TOP, pos, randomSupplier, context, state);
+            } else {
+                emitBaseSlabQuads(blockView, state, SlabType.TOP, pos, randomSupplier, context);
             }
         }
-
-        // If covered by a full block that has no slab variant (e.g. Wool, Concrete, Obsidian):
-        if (camoBottom != null && camoBottom.equals(camoTop) && !camoBottom.hasProperty(SlabBlock.TYPE)) {
-            emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
-            return;
-        }
-
-        // 1. Bottom half (Y: 0.0 to 0.5)
-        BlockState bottomState = state.setValue(SlabBlock.TYPE, SlabType.BOTTOM);
-        context.pushTransform(ElevatorSlabBakedModel::isBottomHalfQuad);
-        if (camoBottom != null) {
-            emitCamoQuads(blockView, camoBottom, bottomState, pos, randomSupplier, context);
-        } else {
-            emitElevatorSlabQuads(blockView, bottomState, pos, randomSupplier, context);
-        }
-        context.popTransform();
-
-        // 2. Top half (Y: 0.5 to 1.0)
-        BlockState topState = state.setValue(SlabBlock.TYPE, SlabType.TOP);
-        context.pushTransform(ElevatorSlabBakedModel::isTopHalfQuad);
-        if (camoTop != null) {
-            emitCamoQuads(blockView, camoTop, topState, pos, randomSupplier, context);
-        } else {
-            emitElevatorSlabQuads(blockView, topState, pos, randomSupplier, context);
-        }
-        context.popTransform();
     }
 
-    private void emitElevatorSlabQuads(BlockAndTintGetter blockView, BlockState slabState,
-                                       BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
+    private void emitBaseSlabQuads(BlockAndTintGetter blockView, BlockState elevatorState, SlabType half,
+                                   BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
+        BlockState slabState = elevatorState.setValue(SlabBlock.TYPE, half);
         BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(slabState);
         BakedModel unwrapped = unwrap(model);
         if (unwrapped != null && unwrapped != this) {
             unwrapped.emitBlockQuads(blockView, slabState, pos, randomSupplier, context);
+        } else {
+            this.wrapped.emitBlockQuads(blockView, slabState, pos, randomSupplier, context);
         }
     }
 
-    private void emitCamoQuads(BlockAndTintGetter blockView, BlockState camo, BlockState elevatorState,
-                               BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
-        BlockState adapted = adaptCamoState(camo, elevatorState);
+    private void emitTransformedQuads(BlockAndTintGetter blockView, BlockState camoState, SlabType half,
+                                      BlockPos pos, Supplier<RandomSource> randomSupplier,
+                                      RenderContext context, BlockState elevatorState) {
+        BlockState adapted = adaptCamoState(camoState, half);
         BakedModel camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(adapted);
 
         if (camoModel != null && camoModel != this && !(camoModel instanceof ElevatorSlabBakedModel)) {
-            camoModel.emitBlockQuads(blockView, adapted, pos, randomSupplier, context);
+            if (!adapted.hasProperty(SlabBlock.TYPE)) {
+                if (half == SlabType.BOTTOM) {
+                    context.pushTransform(ElevatorSlabBakedModel::isBottomHalfQuad);
+                    camoModel.emitBlockQuads(blockView, adapted, pos, randomSupplier, context);
+                    context.popTransform();
+                } else {
+                    context.pushTransform(ElevatorSlabBakedModel::isTopHalfQuad);
+                    camoModel.emitBlockQuads(blockView, adapted, pos, randomSupplier, context);
+                    context.popTransform();
+                }
+            } else {
+                camoModel.emitBlockQuads(blockView, adapted, pos, randomSupplier, context);
+            }
         } else {
-            emitElevatorSlabQuads(blockView, elevatorState, pos, randomSupplier, context);
+            emitBaseSlabQuads(blockView, elevatorState, half, pos, randomSupplier, context);
         }
     }
 
@@ -173,11 +166,6 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
         float y2 = quad.y(2);
         float y3 = quad.y(3);
 
-        if (Math.abs(y0 - 0.5f) < 0.01f && Math.abs(y1 - 0.5f) < 0.01f
-                && Math.abs(y2 - 0.5f) < 0.01f && Math.abs(y3 - 0.5f) < 0.01f) {
-            return false;
-        }
-
         return y0 <= 0.501f && y1 <= 0.501f && y2 <= 0.501f && y3 <= 0.501f;
     }
 
@@ -186,11 +174,6 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
         float y1 = quad.y(1);
         float y2 = quad.y(2);
         float y3 = quad.y(3);
-
-        if (Math.abs(y0 - 0.5f) < 0.01f && Math.abs(y1 - 0.5f) < 0.01f
-                && Math.abs(y2 - 0.5f) < 0.01f && Math.abs(y3 - 0.5f) < 0.01f) {
-            return false;
-        }
 
         return y0 >= 0.499f && y1 >= 0.499f && y2 >= 0.499f && y3 >= 0.499f;
     }

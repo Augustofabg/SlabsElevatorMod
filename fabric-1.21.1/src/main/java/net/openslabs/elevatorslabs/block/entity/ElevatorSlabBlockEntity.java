@@ -162,7 +162,8 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
         }
 
         if (this.level != null && this.level.isClientSide) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+            BlockState currentState = this.getBlockState();
+            this.level.sendBlockUpdated(this.worldPosition, currentState, currentState, 3);
         }
     }
 
@@ -360,7 +361,8 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
 
     public void requestModelDataUpdate() {
         if (this.level != null && this.level.isClientSide) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+            BlockState currentState = this.getBlockState();
+            this.level.sendBlockUpdated(this.worldPosition, currentState, currentState, 3);
         }
     }
 

@@ -34,8 +34,10 @@ import javax.annotation.Nullable;
  */
 public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider {
 
-    public static final ModelProperty<BlockState> CAMO_BOTTOM = new ModelProperty<>();
-    public static final ModelProperty<BlockState> CAMO_TOP = new ModelProperty<>();
+    public static final ModelProperty<BlockState> CAMOUFLAGE_BOTTOM_PROPERTY = new ModelProperty<>();
+    public static final ModelProperty<BlockState> CAMOUFLAGE_TOP_PROPERTY = new ModelProperty<>();
+    public static final ModelProperty<BlockState> CAMO_BOTTOM = CAMOUFLAGE_BOTTOM_PROPERTY;
+    public static final ModelProperty<BlockState> CAMO_TOP = CAMOUFLAGE_TOP_PROPERTY;
     public static final ModelProperty<BlockState> CAMO_STATE = new ModelProperty<>();
     public static final ModelProperty<Boolean> APPLIED_AS_FULL_BLOCK = new ModelProperty<>();
     public static final ModelProperty<Block> FULL_BLOCK_SOURCE = new ModelProperty<>();
@@ -189,14 +191,28 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider
             load(tag);
         }
         requestModelDataUpdate();
-        if (this.level != null && this.level.isClientSide) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        if (this.level != null) {
+            BlockState currentState = this.getBlockState();
+            this.level.sendBlockUpdated(this.worldPosition, currentState, currentState, 3);
+        }
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag) {
+        super.handleUpdateTag(tag);
+        load(tag);
+        requestModelDataUpdate();
+        if (this.level != null) {
+            BlockState currentState = this.getBlockState();
+            this.level.sendBlockUpdated(this.worldPosition, currentState, currentState, 3);
         }
     }
 
     @Override
     public ModelData getModelData() {
         return ModelData.builder()
+                .with(CAMOUFLAGE_BOTTOM_PROPERTY, this.camouflagedBottomState)
+                .with(CAMOUFLAGE_TOP_PROPERTY, this.camouflagedTopState)
                 .with(CAMO_BOTTOM, this.camouflagedBottomState)
                 .with(CAMO_TOP, this.camouflagedTopState)
                 .with(CAMO_STATE, getCamouflagedBlock())

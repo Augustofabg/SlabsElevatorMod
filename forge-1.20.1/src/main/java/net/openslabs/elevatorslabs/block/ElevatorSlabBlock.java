@@ -90,11 +90,6 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                     if (player.isCrouching()) {
                         return Shapes.block();
                     }
-                    HitResult hit = player.pick(6.0D, 0.0F, false);
-                    if (hit instanceof BlockHitResult blockHit && blockHit.getBlockPos().equals(pos)) {
-                        double localY = blockHit.getLocation().y - pos.getY();
-                        return (localY >= 0.5D) ? TOP_AABB : BOTTOM_AABB;
-                    }
                     Vec3 eyePos = player.getEyePosition();
                     Vec3 viewVec = player.getViewVector(1.0F);
                     Vec3 endPos = eyePos.add(viewVec.scale(6.0D));
@@ -104,6 +99,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                         double localY = boxHit.get().y - pos.getY();
                         return (localY >= 0.5D) ? TOP_AABB : BOTTOM_AABB;
                     }
+                    return (eyePos.y < pos.getY() + 0.5D) ? BOTTOM_AABB : TOP_AABB;
                 }
                 return Shapes.block();
             case TOP:
@@ -128,112 +124,88 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
     @Override
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        if (!level.isClientSide && player.isCreative()) {
-            boolean crouching = player.isCrouching();
-            SlabType type = state.hasProperty(SlabBlock.TYPE) ? state.getValue(SlabBlock.TYPE) : SlabType.BOTTOM;
-            if (crouching || type != SlabType.DOUBLE) {
-                BlockEntity be = level.getBlockEntity(pos);
-                if (be instanceof ElevatorSlabBlockEntity slabTile) {
-                    slabTile.clearAllCamo();
-                }
-            }
-        }
         super.playerWillDestroy(level, pos, state, player);
+    }
+
+    public static ItemStack getSlabItemForState(@Nullable BlockState state) {
+        if (state == null || state.isAir()) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(state.getBlock().asItem());
     }
 
     @Override
     public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, boolean willHarvest, FluidState fluid) {
-        if (state.hasProperty(SlabBlock.TYPE) && state.getValue(SlabBlock.TYPE) == SlabType.DOUBLE) {
-            boolean crouching = player.isCrouching();
-            if (!crouching) {
-                double localY = getHitY(level, pos, player);
-                SlabType remainingType = (localY < 0.5D) ? SlabType.TOP : SlabType.BOTTOM;
-                BlockState remainingState = state.setValue(SlabBlock.TYPE, remainingType);
+        if (state.hasProperty(TYPE) && state.getValue(TYPE) == SlabType.DOUBLE) {
+            BlockEntity be = level.getBlockEntity(pos);
+
+            // Raycast preciso via player.pick()
+            double localY;
+            HitResult hit = player.pick(20.0D, 0.0F, false);
+            if (hit.getType() == HitResult.Type.BLOCK) {
+                localY = hit.getLocation().y - pos.getY();
+            } else {
+                localY = getHitY(level, pos, player);
+            }
+
+            // ZONA CENTRAL DE JUNÇÃO (0.45 <= localY <= 0.55): quebra as DUAS metades
+            if (localY >= 0.45D && localY <= 0.55D) {
+                return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
+            }
+
+            if (be instanceof ElevatorSlabBlockEntity elevatorBe) {
+                boolean brokeTop = localY > 0.55D;
+                BlockState newState = state.setValue(SlabBlock.TYPE, brokeTop ? SlabType.BOTTOM : SlabType.TOP);
+                boolean wasFullBlock = elevatorBe.isAppliedAsFullBlock();
+
+                // CONTROLE DE DROPS (Survival apenas):
+                if (!level.isClientSide && !player.isCreative()) {
+                    popResource(level, pos, new ItemStack(this.asItem()));
+
+                    if (wasFullBlock) {
+                        ItemStack fullDrop = elevatorBe.getFullBlockDropStack();
+                        if (!fullDrop.isEmpty()) {
+                            popResource(level, pos, fullDrop);
+                        }
+                    } else {
+                        BlockState brokenCamo = brokeTop
+                                ? elevatorBe.getCamouflagedTopState()
+                                : elevatorBe.getCamouflagedBottomState();
+                        if (brokenCamo != null && !brokenCamo.isAir()) {
+                            popResource(level, pos, getSlabItemForState(brokenCamo));
+                        }
+                    }
+                }
+
+                // ATUALIZAÇÃO DA BLOCK ENTITY:
+                if (wasFullBlock) {
+                    elevatorBe.setCamouflagedBottomState(null);
+                    elevatorBe.setCamouflagedTopState(null);
+                    elevatorBe.setAppliedAsFullBlock(false);
+                    elevatorBe.setFullBlockSource(null);
+                } else {
+                    if (brokeTop) {
+                        elevatorBe.setCamouflagedTopState(null);
+                    } else {
+                        elevatorBe.setCamouflagedBottomState(null);
+                    }
+                }
+                elevatorBe.setChanged();
+
+                // ATUALIZAR MUNDO E SINCRONIZAR CLIENTE:
+                level.setBlock(pos, newState, 3);
+                level.sendBlockUpdated(pos, state, newState, 3);
+                elevatorBe.requestModelDataUpdate();
+                level.sendBlockUpdated(pos, newState, newState, Block.UPDATE_ALL_IMMEDIATE);
+                elevatorBe.notifyUpdate();
 
                 if (!level.isClientSide) {
-                    BlockEntity be = level.getBlockEntity(pos);
-                    ElevatorSlabBlockEntity slabTile = (be instanceof ElevatorSlabBlockEntity tile) ? tile : null;
-
-                    // 1. Spawns / drops:
-                    if (!player.isCreative() && slabTile != null) {
-                        // Drop 1 elevator slab
-                        popResource(level, pos, new ItemStack(this));
-
-                        if (slabTile.isAppliedAsFullBlock()) {
-                            // Full block camouflage: drop 1 original full block
-                            ItemStack fullDrop = slabTile.getFullBlockDropStack();
-                            if (!fullDrop.isEmpty()) {
-                                popResource(level, pos, fullDrop);
-                            }
-                        } else {
-                            // Independent slabs: drop the slab of the broken half
-                            BlockState brokenCamo = (remainingType == SlabType.TOP)
-                                    ? slabTile.getCamouflagedBottomState()
-                                    : slabTile.getCamouflagedTopState();
-                            if (brokenCamo != null) {
-                                popResource(level, pos, new ItemStack(brokenCamo.getBlock().asItem()));
-                            }
-                        }
-                    }
-
-                    // 2. Capture camouflage & properties to preserve for remaining half:
-                    BlockState preservedCamo = null;
-                    if (slabTile != null && !slabTile.isAppliedAsFullBlock()) {
-                        preservedCamo = (remainingType == SlabType.TOP)
-                                ? slabTile.getCamouflagedTopState()
-                                : slabTile.getCamouflagedBottomState();
-                    }
-                    boolean directional = (slabTile != null) && slabTile.isDirectional();
-                    Direction facing = (slabTile != null) ? slabTile.getFacing() : Direction.NORTH;
-                    boolean hideArrow = (slabTile != null) && slabTile.isHideArrow();
-
-                    // 3. Update existing in-memory tile before setBlock:
-                    if (slabTile != null) {
-                        slabTile.setAppliedAsFullBlock(false);
-                        slabTile.setFullBlockSource(null);
-                        if (remainingType == SlabType.TOP) {
-                            slabTile.setCamouflagedTopState(preservedCamo);
-                            slabTile.setCamouflagedBottomState(null);
-                        } else {
-                            slabTile.setCamouflagedBottomState(preservedCamo);
-                            slabTile.setCamouflagedTopState(null);
-                        }
-                    }
-
-                    // 4. Change block state to single slab:
-                    level.setBlock(pos, remainingState, Block.UPDATE_ALL | Block.UPDATE_KNOWN_SHAPE);
-
-                    // 5. Ensure the tile entity at pos preserves the remaining camouflage & settings:
-                    BlockEntity currentBe = level.getBlockEntity(pos);
-                    ElevatorSlabBlockEntity activeTile = (currentBe instanceof ElevatorSlabBlockEntity tile) ? tile : slabTile;
-                    if (activeTile != null) {
-                        activeTile.setDirectional(directional);
-                        activeTile.setFacing(facing);
-                        activeTile.setHideArrow(hideArrow);
-                        activeTile.setAppliedAsFullBlock(false);
-                        activeTile.setFullBlockSource(null);
-                        if (remainingType == SlabType.TOP) {
-                            activeTile.setCamouflagedTopState(preservedCamo);
-                            activeTile.setCamouflagedBottomState(null);
-                        } else {
-                            activeTile.setCamouflagedBottomState(preservedCamo);
-                            activeTile.setCamouflagedTopState(null);
-                        }
-                        activeTile.setChanged();
-                        activeTile.requestModelDataUpdate();
-                        activeTile.notifyUpdate();
-                    }
-
-                    level.sendBlockUpdated(pos, state, remainingState, Block.UPDATE_ALL);
                     level.levelEvent(player, 2001, pos, Block.getId(state));
                 }
 
-                // Crucial: return false so Minecraft's destroyBlock/removeBlock DOES NOT remove the block from the world
                 return false;
             }
-            // Full block selected (crouching): break both halves together, drops handled in onRemove
         }
-
         return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
     }
 
@@ -292,42 +264,17 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        // Se está trocando para um bloco diferente (não é transição DOUBLE→BOTTOM/TOP do mesmo bloco)
         if (!state.is(newState.getBlock())) {
-            if (!level.isClientSide) {
-                BlockEntity be = level.getBlockEntity(pos);
-                if (be instanceof ElevatorSlabBlockEntity slabTile) {
-                    if (slabTile.isAppliedAsFullBlock()) {
-                        // Cenário 1: quebrar ambas as metades dropa 1 bloco completo original
-                        ItemStack fullDrop = slabTile.getFullBlockDropStack();
-                        if (!fullDrop.isEmpty()) {
-                            popResource(level, pos, fullDrop);
-                        }
-                    } else {
-                        // Cenário 2: quebrar ambas as metades dropa as respectivas lajes
-                        BlockState bottomCamo = slabTile.getCamouflagedBottomState();
-                        if (bottomCamo != null) {
-                            popResource(level, pos, new ItemStack(bottomCamo.getBlock().asItem()));
-                        }
-                        BlockState topCamo = slabTile.getCamouflagedTopState();
-                        if (topCamo != null) {
-                            popResource(level, pos, new ItemStack(topCamo.getBlock().asItem()));
-                        }
-                    }
-                    slabTile.clearAllCamo();
-                }
-            }
             super.onRemove(state, level, pos, newState, isMoving);
         }
+        // Se é o mesmo bloco mudando de tipo, NÃO chamamos super para preservar a BlockEntity.
     }
 
     protected double getHitY(Level level, BlockPos pos, Player player) {
-        HitResult hit = player.pick(6.0D, 0.0F, false);
-        if (hit instanceof BlockHitResult blockHit && blockHit.getBlockPos().equals(pos)) {
-            return blockHit.getLocation().y - pos.getY();
-        }
         Vec3 eyePos = player.getEyePosition();
         Vec3 viewVec = player.getViewVector(1.0F);
-        Vec3 endPos = eyePos.add(viewVec.scale(6.0D));
+        Vec3 endPos = eyePos.add(viewVec.scale(20.0D));
         AABB box = new AABB(pos);
         Optional<Vec3> boxHit = box.clip(eyePos, endPos);
         if (boxHit.isPresent()) {
