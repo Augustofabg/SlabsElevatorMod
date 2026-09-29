@@ -1,6 +1,6 @@
 <div align="center">
 
- <img width="1000" height="800" alt="image" src="neoforge-1.21.1/src/img/Elevator-29-09-2026.png" />
+ <img width="1000" height="800" alt="image" src="assets/Slab_Elevator_logo.png" />
 
  <br/> 
  
