@@ -162,7 +162,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
         }
 
         if (this.level != null && this.level.isClientSide) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), 3);
+            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
         }
     }
 
@@ -218,6 +218,10 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
 
     public void setCamouflagedBottomState(@Nullable BlockState state) {
         this.camouflagedBottomState = state;
+        if (this.appliedAsFullBlock && (this.camouflagedBottomState == null || this.camouflagedTopState == null || !this.camouflagedBottomState.equals(this.camouflagedTopState))) {
+            this.appliedAsFullBlock = false;
+            this.fullBlockSource = null;
+        }
         setChanged();
         notifyUpdate();
     }
@@ -229,6 +233,10 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
 
     public void setCamouflagedTopState(@Nullable BlockState state) {
         this.camouflagedTopState = state;
+        if (this.appliedAsFullBlock && (this.camouflagedBottomState == null || this.camouflagedTopState == null || !this.camouflagedTopState.equals(this.camouflagedBottomState))) {
+            this.appliedAsFullBlock = false;
+            this.fullBlockSource = null;
+        }
         setChanged();
         notifyUpdate();
     }
@@ -350,9 +358,22 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
         return true;
     }
 
-    private void notifyUpdate() {
+    public void requestModelDataUpdate() {
+        if (this.level != null && this.level.isClientSide) {
+            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        }
+    }
+
+    public void notifyUpdate() {
         if (this.level != null && !this.level.isClientSide) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), 3);
+            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+            if (this.level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                Packet<?> packet = getUpdatePacket();
+                if (packet != null) {
+                    serverLevel.getChunkSource().chunkMap.getPlayers(new net.minecraft.world.level.ChunkPos(this.worldPosition), false)
+                            .forEach(p -> p.connection.send(packet));
+                }
+            }
         }
     }
 

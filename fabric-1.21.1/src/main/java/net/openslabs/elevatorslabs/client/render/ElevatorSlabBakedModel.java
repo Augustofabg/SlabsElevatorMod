@@ -73,7 +73,13 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
 
         if (type == SlabType.BOTTOM) {
             if (camoBottom != null) {
-                emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
+                if (!camoBottom.hasProperty(SlabBlock.TYPE)) {
+                    context.pushTransform(ElevatorSlabBakedModel::isBottomHalfQuad);
+                    emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
+                    context.popTransform();
+                } else {
+                    emitCamoQuads(blockView, camoBottom, state, pos, randomSupplier, context);
+                }
                 return;
             }
             super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
@@ -82,7 +88,13 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
 
         if (type == SlabType.TOP) {
             if (camoTop != null) {
-                emitCamoQuads(blockView, camoTop, state, pos, randomSupplier, context);
+                if (!camoTop.hasProperty(SlabBlock.TYPE)) {
+                    context.pushTransform(ElevatorSlabBakedModel::isTopHalfQuad);
+                    emitCamoQuads(blockView, camoTop, state, pos, randomSupplier, context);
+                    context.popTransform();
+                } else {
+                    emitCamoQuads(blockView, camoTop, state, pos, randomSupplier, context);
+                }
                 return;
             }
             super.emitBlockQuads(blockView, state, pos, randomSupplier, context);
@@ -119,7 +131,7 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
         if (camoBottom != null) {
             emitCamoQuads(blockView, camoBottom, bottomState, pos, randomSupplier, context);
         } else {
-            super.emitBlockQuads(blockView, bottomState, pos, randomSupplier, context);
+            emitElevatorSlabQuads(blockView, bottomState, pos, randomSupplier, context);
         }
         context.popTransform();
 
@@ -129,9 +141,18 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
         if (camoTop != null) {
             emitCamoQuads(blockView, camoTop, topState, pos, randomSupplier, context);
         } else {
-            super.emitBlockQuads(blockView, topState, pos, randomSupplier, context);
+            emitElevatorSlabQuads(blockView, topState, pos, randomSupplier, context);
         }
         context.popTransform();
+    }
+
+    private void emitElevatorSlabQuads(BlockAndTintGetter blockView, BlockState slabState,
+                                       BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
+        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(slabState);
+        BakedModel unwrapped = unwrap(model);
+        if (unwrapped != null && unwrapped != this) {
+            unwrapped.emitBlockQuads(blockView, slabState, pos, randomSupplier, context);
+        }
     }
 
     private void emitCamoQuads(BlockAndTintGetter blockView, BlockState camo, BlockState elevatorState,
@@ -142,7 +163,7 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
         if (camoModel != null && camoModel != this && !(camoModel instanceof ElevatorSlabBakedModel)) {
             camoModel.emitBlockQuads(blockView, adapted, pos, randomSupplier, context);
         } else {
-            super.emitBlockQuads(blockView, elevatorState, pos, randomSupplier, context);
+            emitElevatorSlabQuads(blockView, elevatorState, pos, randomSupplier, context);
         }
     }
 

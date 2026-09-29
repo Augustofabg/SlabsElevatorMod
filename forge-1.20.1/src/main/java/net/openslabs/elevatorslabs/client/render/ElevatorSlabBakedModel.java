@@ -138,12 +138,8 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
                                                  RandomSource rand, @Nullable RenderType renderType) {
         BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(slabState);
         BakedModel unwrapped = unwrap(model);
-        if (unwrapped != null && unwrapped != this && !(unwrapped instanceof ElevatorSlabBakedModel)) {
-            ChunkRenderTypeSet renderTypes = unwrapped.getRenderTypes(slabState, rand, ModelData.EMPTY);
-            if (renderType == null || renderTypes.isEmpty() || renderTypes.contains(renderType)) {
-                return unwrapped.getQuads(slabState, side, rand, ModelData.EMPTY, renderType);
-            }
-            return List.of();
+        if (unwrapped != null && unwrapped != this) {
+            return unwrapped.getQuads(slabState, side, rand, ModelData.EMPTY, renderType);
         }
         return List.of();
     }
@@ -154,11 +150,24 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
         BakedModel camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(adapted);
 
         if (camoModel != null && camoModel != this && !(camoModel instanceof ElevatorSlabBakedModel)) {
-            ChunkRenderTypeSet renderTypes = camoModel.getRenderTypes(adapted, rand, ModelData.EMPTY);
-            if (renderType == null || renderTypes.isEmpty() || renderTypes.contains(renderType)) {
-                return camoModel.getQuads(adapted, side, rand, ModelData.EMPTY, renderType);
+            List<BakedQuad> quads = camoModel.getQuads(adapted, side, rand, ModelData.EMPTY, renderType);
+            if (!adapted.hasProperty(SlabBlock.TYPE) && elevatorState.hasProperty(SlabBlock.TYPE)) {
+                SlabType type = elevatorState.getValue(SlabBlock.TYPE);
+                if (type == SlabType.BOTTOM) {
+                    List<BakedQuad> filtered = new java.util.ArrayList<>();
+                    for (BakedQuad q : quads) {
+                        if (isBottomHalfQuad(q)) filtered.add(q);
+                    }
+                    return filtered;
+                } else if (type == SlabType.TOP) {
+                    List<BakedQuad> filtered = new java.util.ArrayList<>();
+                    for (BakedQuad q : quads) {
+                        if (isTopHalfQuad(q)) filtered.add(q);
+                    }
+                    return filtered;
+                }
             }
-            return List.of();
+            return quads;
         }
         return getOriginalSlabQuads(elevatorState, side, rand, renderType);
     }
@@ -232,9 +241,10 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
 
         if (type == SlabType.BOTTOM) {
             if (camoBottom != null) {
-                BakedModel m = Minecraft.getInstance().getBlockRenderer().getBlockModel(camoBottom);
+                BlockState adapted = adaptCamoState(camoBottom, state);
+                BakedModel m = Minecraft.getInstance().getBlockRenderer().getBlockModel(adapted);
                 if (m != null && m != this && !(m instanceof ElevatorSlabBakedModel)) {
-                    types = ChunkRenderTypeSet.union(types, m.getRenderTypes(camoBottom, rand, ModelData.EMPTY));
+                    types = ChunkRenderTypeSet.union(types, m.getRenderTypes(adapted, rand, ModelData.EMPTY));
                 } else {
                     needsBase = true;
                 }
@@ -243,9 +253,10 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
             }
         } else if (type == SlabType.TOP) {
             if (camoTop != null) {
-                BakedModel m = Minecraft.getInstance().getBlockRenderer().getBlockModel(camoTop);
+                BlockState adapted = adaptCamoState(camoTop, state);
+                BakedModel m = Minecraft.getInstance().getBlockRenderer().getBlockModel(adapted);
                 if (m != null && m != this && !(m instanceof ElevatorSlabBakedModel)) {
-                    types = ChunkRenderTypeSet.union(types, m.getRenderTypes(camoTop, rand, ModelData.EMPTY));
+                    types = ChunkRenderTypeSet.union(types, m.getRenderTypes(adapted, rand, ModelData.EMPTY));
                 } else {
                     needsBase = true;
                 }

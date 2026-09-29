@@ -10,6 +10,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -128,19 +129,11 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
     @Override
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         if (!level.isClientSide && player.isCreative()) {
-            BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof ElevatorSlabBlockEntity slabTile) {
-                if (state.hasProperty(SlabBlock.TYPE) && state.getValue(SlabBlock.TYPE) == SlabType.DOUBLE) {
-                    boolean crouching = player.isCrouching();
-                    double localY = getHitY(level, pos, player);
-                    if (crouching || (localY > 0.45D && localY < 0.55D) || slabTile.isAppliedAsFullBlock()) {
-                        slabTile.clearAllCamo();
-                    } else if (localY <= 0.45D) {
-                        slabTile.setCamouflagedBottom(null);
-                    } else {
-                        slabTile.setCamouflagedTop(null);
-                    }
-                } else {
+            boolean crouching = player.isCrouching();
+            SlabType type = state.hasProperty(SlabBlock.TYPE) ? state.getValue(SlabBlock.TYPE) : SlabType.BOTTOM;
+            if (crouching || type != SlabType.DOUBLE) {
+                BlockEntity be = level.getBlockEntity(pos);
+                if (be instanceof ElevatorSlabBlockEntity slabTile) {
                     slabTile.clearAllCamo();
                 }
             }
@@ -183,18 +176,41 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                             }
 
                             if (slabTile.isAppliedAsFullBlock()) {
-                                // Cenário 1: A metade superior perde a camuflagem e appliedAsFullBlock vira false
                                 slabTile.clearAllCamo();
                             } else {
-                                // Cenário 2: Metade restante mantém camuflagem intacta
                                 slabTile.setCamouflagedBottomState(null);
+                                slabTile.setAppliedAsFullBlock(false);
+                                slabTile.setFullBlockSource(null);
+                            }
+
+                            level.setBlock(pos, remainingState, Block.UPDATE_ALL | Block.UPDATE_KNOWN_SHAPE);
+
+                            BlockEntity currentBe = level.getBlockEntity(pos);
+                            ElevatorSlabBlockEntity activeTile = (currentBe instanceof ElevatorSlabBlockEntity tile) ? tile : slabTile;
+                            activeTile.setChanged();
+                            activeTile.requestModelDataUpdate();
+                            activeTile.notifyUpdate();
+                            level.sendBlockUpdated(pos, state, remainingState, Block.UPDATE_ALL);
+                            level.levelEvent(player, 2001, pos, Block.getId(state));
+                        }
+                    } else {
+                        // Client-side prediction:
+                        BlockEntity be = level.getBlockEntity(pos);
+                        if (be instanceof ElevatorSlabBlockEntity slabTile) {
+                            if (slabTile.isAppliedAsFullBlock()) {
+                                slabTile.clearAllCamo();
+                            } else {
+                                slabTile.setCamouflagedBottomState(null);
+                                slabTile.setAppliedAsFullBlock(false);
+                                slabTile.setFullBlockSource(null);
                             }
                         }
-
-                        level.setBlock(pos, remainingState, 3);
-                        level.levelEvent(player, 2001, pos, Block.getId(state));
-                    } else {
-                        level.setBlock(pos, remainingState, 11);
+                        level.setBlock(pos, remainingState, Block.UPDATE_ALL | Block.UPDATE_KNOWN_SHAPE);
+                        BlockEntity currentBe = level.getBlockEntity(pos);
+                        if (currentBe instanceof ElevatorSlabBlockEntity activeTile) {
+                            activeTile.requestModelDataUpdate();
+                        }
+                        level.sendBlockUpdated(pos, state, remainingState, Block.UPDATE_ALL);
                     }
 
                     return false;
@@ -226,18 +242,41 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                             }
 
                             if (slabTile.isAppliedAsFullBlock()) {
-                                // Cenário 1: A metade inferior perde a camuflagem e appliedAsFullBlock vira false
                                 slabTile.clearAllCamo();
                             } else {
-                                // Cenário 2: Metade restante mantém camuflagem intacta
                                 slabTile.setCamouflagedTopState(null);
+                                slabTile.setAppliedAsFullBlock(false);
+                                slabTile.setFullBlockSource(null);
+                            }
+
+                            level.setBlock(pos, remainingState, Block.UPDATE_ALL | Block.UPDATE_KNOWN_SHAPE);
+
+                            BlockEntity currentBe = level.getBlockEntity(pos);
+                            ElevatorSlabBlockEntity activeTile = (currentBe instanceof ElevatorSlabBlockEntity tile) ? tile : slabTile;
+                            activeTile.setChanged();
+                            activeTile.requestModelDataUpdate();
+                            activeTile.notifyUpdate();
+                            level.sendBlockUpdated(pos, state, remainingState, Block.UPDATE_ALL);
+                            level.levelEvent(player, 2001, pos, Block.getId(state));
+                        }
+                    } else {
+                        // Client-side prediction:
+                        BlockEntity be = level.getBlockEntity(pos);
+                        if (be instanceof ElevatorSlabBlockEntity slabTile) {
+                            if (slabTile.isAppliedAsFullBlock()) {
+                                slabTile.clearAllCamo();
+                            } else {
+                                slabTile.setCamouflagedTopState(null);
+                                slabTile.setAppliedAsFullBlock(false);
+                                slabTile.setFullBlockSource(null);
                             }
                         }
-
-                        level.setBlock(pos, remainingState, 3);
-                        level.levelEvent(player, 2001, pos, Block.getId(state));
-                    } else {
-                        level.setBlock(pos, remainingState, 11);
+                        level.setBlock(pos, remainingState, Block.UPDATE_ALL | Block.UPDATE_KNOWN_SHAPE);
+                        BlockEntity currentBe = level.getBlockEntity(pos);
+                        if (currentBe instanceof ElevatorSlabBlockEntity activeTile) {
+                            activeTile.requestModelDataUpdate();
+                        }
+                        level.sendBlockUpdated(pos, state, remainingState, Block.UPDATE_ALL);
                     }
 
                     return false;
@@ -251,7 +290,55 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
     @Override
     public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {
+        if (!level.isClientSide && state.is(this) && oldState.is(this)) {
+            if (oldState.hasProperty(TYPE) && state.hasProperty(TYPE)) {
+                SlabType oldType = oldState.getValue(TYPE);
+                SlabType newType = state.getValue(TYPE);
+                if (oldType != newType && newType == SlabType.DOUBLE) {
+                    BlockEntity be = level.getBlockEntity(pos);
+                    if (be instanceof ElevatorSlabBlockEntity slabTile) {
+                        if (slabTile.isAppliedAsFullBlock()) {
+                            if (oldType == SlabType.BOTTOM) {
+                                slabTile.setCamouflagedTopState(slabTile.getAdaptedTopCamo());
+                            } else if (oldType == SlabType.TOP) {
+                                slabTile.setCamouflagedBottomState(slabTile.getAdaptedBottomCamo());
+                            }
+                        } else {
+                            if (oldType == SlabType.BOTTOM) {
+                                slabTile.setCamouflagedTopState(null);
+                            } else if (oldType == SlabType.TOP) {
+                                slabTile.setCamouflagedBottomState(null);
+                            }
+                        }
+                        slabTile.setChanged();
+                        slabTile.requestModelDataUpdate();
+                        slabTile.notifyUpdate();
+                        level.sendBlockUpdated(pos, oldState, state, Block.UPDATE_ALL);
+                    }
+                }
+            }
+        }
         super.onPlace(state, level, pos, oldState, isMoving);
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (!level.isClientSide && state.hasProperty(TYPE)) {
+            SlabType type = state.getValue(TYPE);
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof ElevatorSlabBlockEntity slabTile) {
+                if (type == SlabType.BOTTOM && !slabTile.isAppliedAsFullBlock()) {
+                    slabTile.setCamouflagedTopState(null);
+                } else if (type == SlabType.TOP && !slabTile.isAppliedAsFullBlock()) {
+                    slabTile.setCamouflagedBottomState(null);
+                }
+                slabTile.setChanged();
+                slabTile.requestModelDataUpdate();
+                slabTile.notifyUpdate();
+                level.sendBlockUpdated(pos, state, state, Block.UPDATE_ALL);
+            }
+        }
     }
 
     @Override
@@ -470,11 +557,12 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                         }
                     }
 
-                    slabTile.setCamouflagedBottomState(bottomSlabState);
                     if (slabTile.isAppliedAsFullBlock()) {
+                        slabTile.setCamouflagedTopState(null);
                         slabTile.setAppliedAsFullBlock(false);
                         slabTile.setFullBlockSource(null);
                     }
+                    slabTile.setCamouflagedBottomState(bottomSlabState);
                 } else {
                     if (topSlabState.equals(slabTile.getCamouflagedTopState()) && !slabTile.isAppliedAsFullBlock()) {
                         openOptionsScreen(player, slabTile, pos);
@@ -490,11 +578,12 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                         }
                     }
 
-                    slabTile.setCamouflagedTopState(topSlabState);
                     if (slabTile.isAppliedAsFullBlock()) {
+                        slabTile.setCamouflagedBottomState(null);
                         slabTile.setAppliedAsFullBlock(false);
                         slabTile.setFullBlockSource(null);
                     }
+                    slabTile.setCamouflagedTopState(topSlabState);
                 }
             } else if (slabType == SlabType.TOP) {
                 if (topSlabState.equals(slabTile.getCamouflagedTopState())) {
