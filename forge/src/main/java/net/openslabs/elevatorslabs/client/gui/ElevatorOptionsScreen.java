@@ -7,6 +7,8 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.openslabs.elevatorslabs.ElevatorSlabsMod;
 import net.openslabs.elevatorslabs.block.entity.ElevatorSlabBlockEntity;
@@ -49,22 +51,26 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         this.selectedFacing = tile != null ? tile.getFacing() : Direction.NORTH;
 
         // Checkbox: Directional
-        this.dirButton = Checkbox.builder(Component.translatable("screen.elevatorid.elevator.directional"), this.font)
-                .pos(this.leftPos + 8, this.topPos + 22)
-                .selected(initialDirectional)
-                .onValueChange((checkbox, selected) -> {
-                    updateVisibility(selected);
-                    sendUpdate(false);
-                })
-                .build();
+        this.dirButton = new Checkbox(this.leftPos + 8, this.topPos + 22, 110, 20,
+                Component.translatable("screen.elevatorid.elevator.directional"), initialDirectional) {
+            @Override
+            public void onPress() {
+                super.onPress();
+                updateVisibility(selected());
+                sendUpdate(false);
+            }
+        };
         addRenderableWidget(this.dirButton);
 
         // Checkbox: Hide arrow (hidden initially if directional == false)
-        this.hideArrowButton = Checkbox.builder(Component.translatable("screen.elevatorid.elevator.hide_arrow"), this.font)
-                .pos(this.leftPos + 8, this.topPos + 44)
-                .selected(initialHideArrow)
-                .onValueChange((checkbox, selected) -> sendUpdate(false))
-                .build();
+        this.hideArrowButton = new Checkbox(this.leftPos + 8, this.topPos + 44, 110, 20,
+                Component.translatable("screen.elevatorid.elevator.hide_arrow"), initialHideArrow) {
+            @Override
+            public void onPress() {
+                super.onPress();
+                sendUpdate(false);
+            }
+        };
         this.hideArrowButton.visible = initialDirectional;
         this.hideArrowButton.active = initialDirectional;
         addRenderableWidget(this.hideArrowButton);

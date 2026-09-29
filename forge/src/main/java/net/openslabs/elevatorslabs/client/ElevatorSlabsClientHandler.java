@@ -1,7 +1,7 @@
 package net.openslabs.elevatorslabs.client;
 
-import com.vsngarcia.Config;
-import com.vsngarcia.ElevatorBlockBase;
+import xyz.vsngamer.elevatorid.init.ModConfig;
+import xyz.vsngamer.elevatorid.blocks.ElevatorBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
@@ -79,8 +79,8 @@ public final class ElevatorSlabsClientHandler {
         int maxRange = 256;
         boolean sameColor = true;
         try {
-            maxRange = Config.GENERAL.range.get();
-            sameColor = Config.GENERAL.sameColor.get();
+            maxRange = ModConfig.GENERAL.range.get();
+            sameColor = ModConfig.GENERAL.sameColor.get();
         } catch (Throwable ignored) {}
 
         ElevatorSearchHelper.TargetResult target =
@@ -89,8 +89,8 @@ public final class ElevatorSlabsClientHandler {
         if (target != null) {
             BlockState toState = target.state();
 
-            boolean bothStandardBlocks = (fromState.getBlock() instanceof ElevatorBlockBase)
-                    && (toState.getBlock() instanceof ElevatorBlockBase);
+            boolean bothStandardBlocks = (fromState.getBlock() instanceof ElevatorBlock)
+                    && (toState.getBlock() instanceof ElevatorBlock);
 
             if (!bothStandardBlocks || fromState.getBlock() instanceof ElevatorSlabBlock || toState.getBlock() instanceof ElevatorSlabBlock) {
                 ElevatorSlabsNetwork.CHANNEL.sendToServer(new TeleportSlabPacket(fromPos, target.pos()));

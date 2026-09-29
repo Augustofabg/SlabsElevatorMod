@@ -1,11 +1,13 @@
 package net.openslabs.elevatorslabs.client;
 
-import com.vsngarcia.ElevatorBlockBase;
+import xyz.vsngamer.elevatorid.blocks.ElevatorBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import java.util.Map;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -80,7 +82,7 @@ public final class ClientSetup {
                     BlockState camo = tile.getCamouflagedBlock();
                     if (camo != null) {
                         if (camo.getBlock() instanceof ElevatorSlabBlock
-                                || camo.getBlock() instanceof ElevatorBlockBase
+                                || camo.getBlock() instanceof ElevatorBlock
                                 || camo.getBlock() == state.getBlock()) {
                             return -1;
                         }

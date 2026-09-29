@@ -1,7 +1,8 @@
 package net.openslabs.elevatorslabs.event;
 
-import com.vsngarcia.ElevatorBlockBase;
+import xyz.vsngamer.elevatorid.blocks.ElevatorBlock;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
@@ -14,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.NetworkHooks;
 import net.openslabs.elevatorslabs.ElevatorSlabsMod;
 import net.openslabs.elevatorslabs.block.ElevatorSlabBlock;
 import net.openslabs.elevatorslabs.init.ModTags;
@@ -34,7 +36,7 @@ public final class ElevatorInteractionHandler {
         Block block = state.getBlock();
 
         // 1. Verify if clicked block belongs to the original mod (full elevator block, not a slab)
-        boolean isOriginalElevator = (block instanceof ElevatorBlockBase && !(block instanceof ElevatorSlabBlock))
+        boolean isOriginalElevator = (block instanceof ElevatorBlock && !(block instanceof ElevatorSlabBlock))
                 || (state.is(ModTags.Blocks.ELEVATORID_ELEVATORS) && !(block instanceof ElevatorSlabBlock));
 
         if (!isOriginalElevator) {
@@ -58,8 +60,8 @@ public final class ElevatorInteractionHandler {
         if (!level.isClientSide) {
             Player player = event.getEntity();
             BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof MenuProvider menuProvider) {
-                player.openMenu(menuProvider, pos);
+            if (be instanceof MenuProvider menuProvider && player instanceof ServerPlayer serverPlayer) {
+                NetworkHooks.openScreen(serverPlayer, menuProvider, pos);
             }
         }
     }

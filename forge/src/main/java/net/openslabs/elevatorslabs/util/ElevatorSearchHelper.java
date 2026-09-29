@@ -1,6 +1,6 @@
 package net.openslabs.elevatorslabs.util;
 
-import com.vsngarcia.ElevatorBlockBase;
+import xyz.vsngamer.elevatorid.blocks.ElevatorBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
@@ -38,7 +38,7 @@ public final class ElevatorSearchHelper {
             return true;
         }
 
-        if (state.getBlock() instanceof ElevatorBlockBase) {
+        if (state.getBlock() instanceof ElevatorBlock) {
             return true;
         }
 
@@ -60,7 +60,7 @@ public final class ElevatorSearchHelper {
             return slab.getColor();
         }
 
-        if (state.getBlock() instanceof ElevatorBlockBase elevator) {
+        if (state.getBlock() instanceof ElevatorBlock elevator) {
             return elevator.getColor();
         }
 

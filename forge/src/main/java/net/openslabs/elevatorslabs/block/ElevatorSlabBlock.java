@@ -1,9 +1,11 @@
 package net.openslabs.elevatorslabs.block;
 
-import com.vsngarcia.ElevatorBlockBase;
+import xyz.vsngamer.elevatorid.blocks.ElevatorBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkHooks;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -45,6 +47,12 @@ import java.util.Optional;
 public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
     private final DyeColor color;
+
+    private void openOptionsScreen(Player player, ElevatorSlabBlockEntity slabTile, BlockPos pos) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            NetworkHooks.openScreen(serverPlayer, slabTile, pos);
+        }
+    }
 
     public ElevatorSlabBlock(DyeColor color, BlockBehaviour.Properties properties) {
         super(properties);
@@ -118,7 +126,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
     }
 
     @Override
-    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         if (!level.isClientSide && player.isCreative()) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof ElevatorSlabBlockEntity slabTile) {
@@ -137,7 +145,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 }
             }
         }
-        return super.playerWillDestroy(level, pos, state, player);
+        super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
@@ -346,8 +354,8 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         // 0. Elevator as configuration tool:
         if (itemStack.getItem() instanceof BlockItem blockItem) {
             Block heldBlock = blockItem.getBlock();
-            if (heldBlock instanceof ElevatorSlabBlock || heldBlock instanceof ElevatorBlockBase) {
-                player.openMenu(slabTile, pos);
+            if (heldBlock instanceof ElevatorSlabBlock || heldBlock instanceof ElevatorBlock) {
+                openOptionsScreen(player, slabTile, pos);
                 return InteractionResult.SUCCESS;
             }
         }
@@ -355,7 +363,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         // 4. REMOÇÃO DE CAMUFLAGEM VIA SHIFT + CLIQUE DIREITO:
         if (player.isShiftKeyDown()) {
             if (!slabTile.hasAnyCamo()) {
-                player.openMenu(slabTile, pos);
+                openOptionsScreen(player, slabTile, pos);
                 return InteractionResult.SUCCESS;
             }
 
@@ -376,7 +384,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                             }
                             slabTile.setCamouflagedBottom(null);
                         } else {
-                            player.openMenu(slabTile, pos);
+                            openOptionsScreen(player, slabTile, pos);
                             return InteractionResult.SUCCESS;
                         }
                     } else {
@@ -387,7 +395,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                             }
                             slabTile.setCamouflagedTop(null);
                         } else {
-                            player.openMenu(slabTile, pos);
+                            openOptionsScreen(player, slabTile, pos);
                             return InteractionResult.SUCCESS;
                         }
                     }
@@ -417,13 +425,13 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
         // 2C. Mão vazia ou item que não seja bloco: abre a interface de opções
         if (itemStack.isEmpty() || !(itemStack.getItem() instanceof BlockItem blockItem)) {
-            player.openMenu(slabTile, pos);
+            openOptionsScreen(player, slabTile, pos);
             return InteractionResult.SUCCESS;
         }
 
         Block heldBlock = blockItem.getBlock();
         if (!isValidCamoBlock(heldBlock)) {
-            player.openMenu(slabTile, pos);
+            openOptionsScreen(player, slabTile, pos);
             return InteractionResult.SUCCESS;
         }
 
@@ -433,13 +441,13 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         // 2A. Bloco que NÃO possui versão em laje:
         if (targetSlab == null) {
             if (slabType != SlabType.DOUBLE) {
-                player.openMenu(slabTile, pos);
+                openOptionsScreen(player, slabTile, pos);
                 return InteractionResult.SUCCESS;
             }
 
             BlockState camoState = heldBlock.defaultBlockState();
             if (camoState.equals(slabTile.getCamouflagedBottom()) && camoState.equals(slabTile.getCamouflagedTop())) {
-                player.openMenu(slabTile, pos);
+                openOptionsScreen(player, slabTile, pos);
                 return InteractionResult.SUCCESS;
             }
 
@@ -487,7 +495,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 boolean bottomMatch = targetBottomState.equals(slabTile.getCamouflagedBottom());
                 boolean topMatch = targetTopState.equals(slabTile.getCamouflagedTop());
                 if (bottomMatch && topMatch) {
-                    player.openMenu(slabTile, pos);
+                    openOptionsScreen(player, slabTile, pos);
                     return InteractionResult.SUCCESS;
                 }
 
@@ -511,7 +519,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 slabTile.setFullBlockSource(heldBlock);
             } else if (slabType == SlabType.TOP) {
                 if (targetTopState.equals(slabTile.getCamouflagedTop())) {
-                    player.openMenu(slabTile, pos);
+                    openOptionsScreen(player, slabTile, pos);
                     return InteractionResult.SUCCESS;
                 }
                 if (!player.isCreative()) {
@@ -527,7 +535,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 slabTile.setFullBlockSource(heldBlock);
             } else { // BOTTOM
                 if (targetBottomState.equals(slabTile.getCamouflagedBottom())) {
-                    player.openMenu(slabTile, pos);
+                    openOptionsScreen(player, slabTile, pos);
                     return InteractionResult.SUCCESS;
                 }
                 if (!player.isCreative()) {
@@ -558,7 +566,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
             if (slabType == SlabType.DOUBLE) {
                 if (localY < 0.5D) {
                     if (targetBottomState.equals(slabTile.getCamouflagedBottom())) {
-                        player.openMenu(slabTile, pos);
+                        openOptionsScreen(player, slabTile, pos);
                         return InteractionResult.SUCCESS;
                     }
                     if (!player.isCreative()) {
@@ -574,7 +582,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                     slabTile.setFullBlockSource(null);
                 } else {
                     if (targetTopState.equals(slabTile.getCamouflagedTop())) {
-                        player.openMenu(slabTile, pos);
+                        openOptionsScreen(player, slabTile, pos);
                         return InteractionResult.SUCCESS;
                     }
                     if (!player.isCreative()) {
@@ -591,7 +599,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 }
             } else if (slabType == SlabType.TOP) {
                 if (targetTopState.equals(slabTile.getCamouflagedTop())) {
-                    player.openMenu(slabTile, pos);
+                    openOptionsScreen(player, slabTile, pos);
                     return InteractionResult.SUCCESS;
                 }
                 if (!player.isCreative()) {
@@ -607,7 +615,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 slabTile.setFullBlockSource(null);
             } else { // BOTTOM
                 if (targetBottomState.equals(slabTile.getCamouflagedBottom())) {
-                    player.openMenu(slabTile, pos);
+                    openOptionsScreen(player, slabTile, pos);
                     return InteractionResult.SUCCESS;
                 }
                 if (!player.isCreative()) {
@@ -642,7 +650,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
     }
 
     public static boolean isValidCamoBlock(Block block) {
-        if (block == null || block instanceof ElevatorSlabBlock || block instanceof ElevatorBlockBase) {
+        if (block == null || block instanceof ElevatorSlabBlock || block instanceof ElevatorBlock) {
             return false;
         }
         BlockState def = block.defaultBlockState();
@@ -666,19 +674,19 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
         if (path.endsWith("_slab")) {
             String base = path.substring(0, path.length() - 5);
-            ResourceLocation directLoc = ResourceLocation.fromNamespaceAndPath(namespace, base);
+            ResourceLocation directLoc = new ResourceLocation(namespace, base);
             if (BuiltInRegistries.BLOCK.containsKey(directLoc)) {
                 return BuiltInRegistries.BLOCK.get(directLoc);
             }
-            ResourceLocation planksLoc = ResourceLocation.fromNamespaceAndPath(namespace, base + "_planks");
+            ResourceLocation planksLoc = new ResourceLocation(namespace, base + "_planks");
             if (BuiltInRegistries.BLOCK.containsKey(planksLoc)) {
                 return BuiltInRegistries.BLOCK.get(planksLoc);
             }
-            ResourceLocation bricksLoc = ResourceLocation.fromNamespaceAndPath(namespace, base + "s");
+            ResourceLocation bricksLoc = new ResourceLocation(namespace, base + "s");
             if (BuiltInRegistries.BLOCK.containsKey(bricksLoc)) {
                 return BuiltInRegistries.BLOCK.get(bricksLoc);
             }
-            ResourceLocation blockLoc = ResourceLocation.fromNamespaceAndPath(namespace, base + "_block");
+            ResourceLocation blockLoc = new ResourceLocation(namespace, base + "_block");
             if (BuiltInRegistries.BLOCK.containsKey(blockLoc)) {
                 return BuiltInRegistries.BLOCK.get(blockLoc);
             }
@@ -694,7 +702,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
      */
     @Nullable
     public static SlabBlock findCorrespondingSlab(Block block) {
-        if (block instanceof ElevatorSlabBlock || block instanceof ElevatorBlockBase) {
+        if (block instanceof ElevatorSlabBlock || block instanceof ElevatorBlock) {
             return null;
         }
         if (block instanceof SlabBlock slab) {
@@ -734,12 +742,12 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         }
 
         for (String candidate : candidates) {
-            ResourceLocation candidateLoc = ResourceLocation.fromNamespaceAndPath(namespace, candidate);
+            ResourceLocation candidateLoc = new ResourceLocation(namespace, candidate);
             if (BuiltInRegistries.BLOCK.containsKey(candidateLoc)) {
                 Block candidateBlock = BuiltInRegistries.BLOCK.get(candidateLoc);
                 if (candidateBlock instanceof SlabBlock foundSlab
                         && !(candidateBlock instanceof ElevatorSlabBlock)
-                        && !(candidateBlock instanceof ElevatorBlockBase)) {
+                        && !(candidateBlock instanceof ElevatorBlock)) {
                     return foundSlab;
                 }
             }
