@@ -1,0 +1,213 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# GitHub Actions – Automated Minecraft Mod Release Workflow (Conventional Commits)
+#
+# Triggers on push to `main`.
+# Inspects commit history for Conventional Commits (feat:, fix:, BREAKING CHANGE).
+# Automatically bumps version (<mc>-v<mod>, e.g. 1.21.1-v0.001 → 1.21.1-v0.002),
+# tags the repository, builds the mod with Gradle, and publishes the release.
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: Auto Release on Push
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write    # required to push git tags, create releases, and upload assets
+
+env:
+  JAVA_VERSION: "21"
+  GRADLE_OPTS: "-Xmx3G -Dfile.encoding=UTF-8"
+
+jobs:
+  auto_release:
+    name: Conventional Commit Auto-Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout repository history ────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Set up Java JDK 21 with Gradle Cache ────────────────────────────
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "gradle"
+
+      # ── 3. Make Gradle wrapper executable ──────────────────────────────────
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # ── 4. Conventional Commit Detection & Dynamic Tag Bumping ─────────────
+      - name: Inspect Commits & Calculate Next Tag
+        id: bump
+        run: |
+          # Helper: extract value from gradle.properties
+          prop() { grep -E "^${1}\s*=" gradle.properties | sed 's/.*=\s*//' | tr -d '\r'; }
+          MC_VERSION="$(prop minecraft_version)"
+
+          # Find latest version tag matching *-v* or v*
+          LAST_TAG=$(git tag --list "*-v*" --sort=-v:refname | head -n 1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG=$(git tag --sort=-v:refname | head -n 1)
+          fi
+
+          echo "Last tag detected: ${LAST_TAG:-none}"
+
+          # Determine commit range to inspect
+          if [ -n "$LAST_TAG" ]; then
+            COMMIT_RANGE="${LAST_TAG}..HEAD"
+          else
+            COMMIT_RANGE="HEAD~1..HEAD"
+          fi
+
+          LOG_MESSAGES=$(git log ${COMMIT_RANGE} --oneline || git log -n 5 --oneline)
+          echo "Commits evaluated:"
+          echo "$LOG_MESSAGES"
+
+          # Check for conventional commits: feat:, fix:, feat(...):, fix(...):, BREAKING CHANGE, or !
+          IS_SIGNIFICANT="false"
+          while IFS= read -r line; do
+            MSG=$(echo "$line" | sed 's/^[a-f0-9]* //')
+            if echo "$MSG" | grep -iE '^(feat|fix)(\(.*\))?!?:|BREAKING CHANGE|!' > /dev/null; then
+              IS_SIGNIFICANT="true"
+              echo "Significant commit detected: $MSG"
+              break
+            fi
+          done <<< "$LOG_MESSAGES"
+
+          if [ "$IS_SIGNIFICANT" != "true" ]; then
+            echo "No feat/fix/breaking commits found. Skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+
+          # Compute next version tag
+          if [ -z "$LAST_TAG" ]; then
+            NEW_TAG="${MC_VERSION}-v0.001"
+          else
+            CURR_VER=$(echo "$LAST_TAG" | sed -E 's/.*-?[vV]([0-9]+\.[0-9]+(\.[0-9]+)?)/\1/')
+            
+            if [[ "$CURR_VER" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              NUM_LEN=${#MINOR}
+              NEXT_NUM=$((10#$MINOR + 1))
+              FORMATTED_NUM=$(printf "%0${NUM_LEN}d" "$NEXT_NUM")
+              NEW_VER="${MAJOR}.${FORMATTED_NUM}"
+            elif [[ "$CURR_VER" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              PATCH="${BASH_REMATCH[3]}"
+              PATCH_LEN=${#PATCH}
+              NEXT_PATCH=$((10#$PATCH + 1))
+              FORMATTED_PATCH=$(printf "%0${PATCH_LEN}d" "$NEXT_PATCH")
+              NEW_VER="${MAJOR}.${MINOR}.${FORMATTED_PATCH}"
+            else
+              NEW_VER="0.001"
+            fi
+            NEW_TAG="${MC_VERSION}-v${NEW_VER}"
+          fi
+
+          echo "Computed new tag: ${NEW_TAG}"
+
+          # Tag git repository
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+
+          # Pre-release determination
+          if [[ "$NEW_TAG" =~ -?[vV]0\. ]]; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="false"
+          fi
+
+          echo "new_tag=${NEW_TAG}"                     >> "$GITHUB_OUTPUT"
+          echo "prerelease=${IS_PRERELEASE}"           >> "$GITHUB_OUTPUT"
+
+      # ── 5. Parse Mod Loader & API Metadata ─────────────────────────────────
+      - name: Parse Mod Metadata
+        if: steps.bump.outputs.should_release == 'true'
+        id: metadata
+        run: |
+          prop() { grep -E "^${1}\s*=" gradle.properties | sed 's/.*=\s*//' | tr -d '\r'; }
+
+          MC_VERSION="$(prop minecraft_version)"
+          NEO_VERSION="$(prop neo_version)"
+          FABRIC_LOADER="$(grep -oP 'fabric-loader:\K[0-9][^\\"]+' fabric-1.21.1/build.gradle | head -1 | tr -d '\r')"
+          FABRIC_API="$(grep -oP 'fabric-api:\K[0-9][^"]+' fabric-1.21.1/build.gradle | head -1 | tr -d '\r')"
+          TODAY="$(date +'%Y-%m-%d')"
+          REPO="${GITHUB_REPOSITORY}"
+
+          echo "today=${TODAY}"                         >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}"                           >> "$GITHUB_OUTPUT"
+          echo "mc_version=${MC_VERSION}"               >> "$GITHUB_OUTPUT"
+          echo "neo_version=${NEO_VERSION}"             >> "$GITHUB_OUTPUT"
+          echo "fabric_loader=${FABRIC_LOADER}"         >> "$GITHUB_OUTPUT"
+          echo "fabric_api=${FABRIC_API}"               >> "$GITHUB_OUTPUT"
+
+      # ── 6. Compile & Build Mod Binaries ────────────────────────────────────
+      - name: Build with Gradle
+        if: steps.bump.outputs.should_release == 'true'
+        run: ./gradlew build --no-daemon --warning-mode=all
+
+      # ── 7. Generate Release Description Body ───────────────────────────────
+      - name: Prepare Release Description
+        if: steps.bump.outputs.should_release == 'true'
+        id: prepare_body
+        env:
+          TAG: ${{ steps.bump.outputs.new_tag }}
+          TODAY: ${{ steps.metadata.outputs.today }}
+          REPO: ${{ steps.metadata.outputs.repo }}
+          MC_VERSION: ${{ steps.metadata.outputs.mc_version }}
+          NEO_VERSION: ${{ steps.metadata.outputs.neo_version }}
+          FABRIC_LOADER: ${{ steps.metadata.outputs.fabric_loader }}
+          FABRIC_API: ${{ steps.metadata.outputs.fabric_api }}
+        run: |
+          {
+            echo "## [${TAG}](https://github.com/${REPO}/releases/tag/${TAG}) (${TODAY})"
+            echo ""
+            echo "### 🧱 Built with"
+            echo ""
+            echo "| Component | Version |"
+            echo "|-----------|---------|"
+            echo "| 🟫 Minecraft | \`${MC_VERSION}\` |"
+            echo "| 🟠 NeoForge | \`${NEO_VERSION}\` |"
+            echo "| 🔵 Fabric Loader | \`${FABRIC_LOADER}\` |"
+            echo "| 🟢 Fabric API | \`${FABRIC_API}\` |"
+            echo ""
+            echo "> **Java ${{ env.JAVA_VERSION }}** required."
+            echo ""
+          } > /tmp/release_body.md
+
+          echo "Generated body prefix:"
+          cat /tmp/release_body.md
+
+      # ── 8. Create GitHub Release & Upload Assets ───────────────────────────
+      - name: Create GitHub Release
+        if: steps.bump.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump.outputs.new_tag }}
+          name: ${{ steps.bump.outputs.new_tag }}
+          body_path: /tmp/release_body.md
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ steps.bump.outputs.prerelease == 'true' }}
+          files: |
+            fabric-1.21.1/build/libs/elevatorslabs-*.jar
+            neoforge-1.21.1/build/libs/elevatorslabs-*.jar
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
