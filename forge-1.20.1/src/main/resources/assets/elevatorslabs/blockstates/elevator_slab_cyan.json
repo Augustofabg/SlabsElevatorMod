@@ -1,13 +1,22 @@
 ﻿{
-    "variants":  {
-                     "type=bottom":  {
-                                         "model":  "elevatorslabs:block/elevator_slab_cyan"
-                                     },
-                     "type=double":  {
-                                         "model":  "elevatorid:block/elevator_cyan"
-                                     },
-                     "type=top":  {
-                                      "model":  "elevatorslabs:block/elevator_slab_cyan_top"
-                                  }
-                 }
+    "variants": {
+        "type=bottom,waterlogged=false": {
+            "model": "elevatorslabs:block/elevator_slab_cyan"
+        },
+        "type=bottom,waterlogged=true": {
+            "model": "elevatorslabs:block/elevator_slab_cyan"
+        },
+        "type=double,waterlogged=false": {
+            "model": "elevatorid:block/elevator_cyan"
+        },
+        "type=double,waterlogged=true": {
+            "model": "elevatorid:block/elevator_cyan"
+        },
+        "type=top,waterlogged=false": {
+            "model": "elevatorslabs:block/elevator_slab_cyan_top"
+        },
+        "type=top,waterlogged=true": {
+            "model": "elevatorslabs:block/elevator_slab_cyan_top"
+        }
+    }
 }
