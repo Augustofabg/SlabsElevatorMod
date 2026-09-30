@@ -178,16 +178,16 @@ jobs:
           {
             echo "## [${TAG}](https://github.com/${REPO}/releases/tag/${TAG}) (${TODAY})"
             echo ""
-            echo "### 🧱 Built with"
+            echo "### Built with"
             echo ""
             echo "| Component | Version |"
             echo "|-----------|---------|"
-            echo "| 🟫 Minecraft | \`${MC_VERSION}\` |"
-            echo "| 🟠 NeoForge | \`${NEO_VERSION}\` |"
-            echo "| 🔵 Fabric Loader | \`${FABRIC_LOADER}\` |"
-            echo "| 🟢 Fabric API | \`${FABRIC_API}\` |"
+            echo "| Minecraft | \`${MC_VERSION}\` |"
+            echo "| NeoForge | \`${NEO_VERSION}\` |"
+            echo "| Fabric Loader | \`${FABRIC_LOADER}\` |"
+            echo "| Fabric API | \`${FABRIC_API}\` |"
             echo ""
-            echo "> **Java ${{ env.JAVA_VERSION }}** required."
+            echo "> Java ${{ env.JAVA_VERSION }} required."
             echo ""
           } > /tmp/release_body.md
 
@@ -204,7 +204,7 @@ jobs:
           body_path: /tmp/release_body.md
           generate_release_notes: true
           draft: false
-          prerelease: ${{ steps.bump.outputs.prerelease == 'true' }}
+          prerelease: true
           files: |
             fabric-1.21.1/build/libs/elevatorslabs-*.jar
             neoforge-1.21.1/build/libs/elevatorslabs-*.jar
