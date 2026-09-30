@@ -27,3 +27,9 @@ Thumbs.db
 # Ensure gradle wrapper is tracked
 !gradle/wrapper/gradle-wrapper.jar
 
+# Agent skills and configurations
+.agents/
+skills-lock.json
+
+
+
