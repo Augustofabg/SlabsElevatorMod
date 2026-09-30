@@ -1,16 +1,15 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# GitHub Actions – Automated Release Workflow
-# Elevator Slabs Mod (Fabric + NeoForge)
+# GitHub Actions – Minecraft Mod Release Workflow
 #
-# Trigger: push of a Git tag matching  v*  (e.g. v1.0.0, v1.21.1-1.0.0)
+# Tag Format: <mc-version>-v<mod-version>  (e.g., 1.21.1-v0.001, 1.21.1-v1.0.0)
 #
-# What it does:
-#   1. Reads loader/API versions from gradle.properties
-#   2. Builds all sub-projects with Gradle Wrapper
-#   3. Generates GitHub Release with:
-#        - "What's Changed" section (PRs + compare link)
-#        - "Built with" section listing every supported loader & API
-#        - All final JARs attached as assets
+# Release Rules:
+#   - Tag matching *-v0.* (e.g. 1.21.1-v0.001) → Published as Pre-release (prerelease: true)
+#   - Tag matching *-v1.* or higher           → Published as Stable Release (prerelease: false)
+#   - Automatic header with release tag link and release date: YYYY-MM-DD
+#   - Native GitHub "What's Changed" notes via generate_release_notes: true
+#   - Markdown "Built with" table detailing MC, NeoForge, Fabric Loader, Fabric API
+#   - Asset upload of final compiled .jar files (excluding -sources, -dev, -shadow)
 # ══════════════════════════════════════════════════════════════════════════════
 
 name: Release
@@ -18,15 +17,14 @@ name: Release
 on:
   push:
     tags:
-      - "v*"          # matches: v1.0.0 · v1.21.1-1.0.0 · v26.3-1.16.5
+      - "*-v*"        # matches: 1.21.1-v0.001, 1.21.1-v0.002, 1.21.1-v1.0.0
+      - "v*"          # matches: v0.001, v1.0.0
 
-# ─────────────────────────── permissions ────────────────────────────────────
 permissions:
-  contents: write   # required to create GitHub Releases and upload assets
+  contents: write    # required to create GitHub releases and upload assets
 
-# ─────────────────────────── global env ─────────────────────────────────────
 env:
-  JAVA_VERSION: "21"          # Java toolchain version used by both sub-projects
+  JAVA_VERSION: "21"
   GRADLE_OPTS: "-Xmx3G -Dfile.encoding=UTF-8"
 
 jobs:
@@ -35,138 +33,113 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout full history (needed for changelog comparison) ──────────
+      # ── 1. Checkout full history ───────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0        # full history so we can find the previous tag
+          fetch-depth: 0
 
-      # ── 2. Set up Java with Gradle cache ───────────────────────────────────
+      # ── 2. Set up Java JDK 21 with Gradle Cache ────────────────────────────
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: ${{ env.JAVA_VERSION }}
-          cache: "gradle"       # caches ~/.gradle/caches & ~/.gradle/wrapper
+          cache: "gradle"
 
-      # ── 3. Make Gradle wrapper executable (required on Linux runners) ───────
+      # ── 3. Make Gradle wrapper executable ──────────────────────────────────
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # ── 4. Parse gradle.properties + build.gradle → expose versions as env ──
-      - name: Read versions from gradle.properties
-        id: versions
+      # ── 4. Parse Versions & Determine Pre-release State ────────────────────
+      - name: Parse Metadata & Version Info
+        id: metadata
         run: |
-          # Helper: extract a value from gradle.properties
+          # Helper: extract value from gradle.properties
           prop() { grep -E "^${1}\s*=" gradle.properties | sed 's/.*=\s*//' | tr -d '\r'; }
 
-          MOD_VERSION="$(prop mod_version)"
           MC_VERSION="$(prop minecraft_version)"
           NEO_VERSION="$(prop neo_version)"
+          MOD_VERSION="$(prop mod_version)"
 
-          # Fabric loader & API versions are declared in fabric-1.21.1/build.gradle
+          # Extract Fabric Loader & API versions from fabric-1.21.1/build.gradle
           FABRIC_LOADER="$(grep -oP 'fabric-loader:\K[0-9][^\\"]+' fabric-1.21.1/build.gradle | head -1 | tr -d '\r')"
           FABRIC_API="$(grep -oP 'fabric-api:\K[0-9][^"]+' fabric-1.21.1/build.gradle | head -1 | tr -d '\r')"
 
-          # Git tag (strip leading 'v' for display)
           TAG="${GITHUB_REF_NAME}"
-          TAG_DISPLAY="${TAG#v}"
+          TODAY="$(date +'%Y-%m-%d')"
+          REPO="${GITHUB_REPOSITORY}"
 
-          # Previous tag for the compare URL
-          PREV_TAG="$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1)"
+          # Pre-release logic: Any tag containing 'v0.' (e.g. 1.21.1-v0.001, v0.002) is a Pre-release
+          if [[ "$TAG" =~ -?[vV]0\. ]]; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="false"
+          fi
 
-          echo "mod_version=${MOD_VERSION}"         >> "$GITHUB_OUTPUT"
-          echo "mc_version=${MC_VERSION}"           >> "$GITHUB_OUTPUT"
-          echo "neo_version=${NEO_VERSION}"         >> "$GITHUB_OUTPUT"
-          echo "fabric_loader=${FABRIC_LOADER}"     >> "$GITHUB_OUTPUT"
-          echo "fabric_api=${FABRIC_API}"           >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}"                         >> "$GITHUB_OUTPUT"
-          echo "tag_display=${TAG_DISPLAY}"         >> "$GITHUB_OUTPUT"
-          echo "prev_tag=${PREV_TAG}"               >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}"                             >> "$GITHUB_OUTPUT"
+          echo "today=${TODAY}"                         >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}"                           >> "$GITHUB_OUTPUT"
+          echo "prerelease=${IS_PRERELEASE}"           >> "$GITHUB_OUTPUT"
+          echo "mc_version=${MC_VERSION}"               >> "$GITHUB_OUTPUT"
+          echo "neo_version=${NEO_VERSION}"             >> "$GITHUB_OUTPUT"
+          echo "fabric_loader=${FABRIC_LOADER}"         >> "$GITHUB_OUTPUT"
+          echo "fabric_api=${FABRIC_API}"               >> "$GITHUB_OUTPUT"
 
-          echo "Parsed versions:"
-          echo "  Mod          : ${MOD_VERSION}"
+          echo "Parsed metadata:"
+          echo "  Tag          : ${TAG}"
+          echo "  Release Date : ${TODAY}"
+          echo "  Is Prerelease: ${IS_PRERELEASE}"
           echo "  Minecraft    : ${MC_VERSION}"
           echo "  NeoForge     : ${NEO_VERSION}"
           echo "  Fabric Loader: ${FABRIC_LOADER}"
           echo "  Fabric API   : ${FABRIC_API}"
-          echo "  Tag          : ${TAG}  (prev: ${PREV_TAG})"
 
-      # ── 5. Build all sub-projects ───────────────────────────────────────────
+      # ── 5. Compile & Build Mod Artifacts ───────────────────────────────────
       - name: Build with Gradle
         run: ./gradlew build --no-daemon --warning-mode=all
 
-      # ── 6. Generate release body (What's Changed + Built with) ─────────────
-      - name: Generate release body
-        id: body
+      # ── 6. Generate Release Body ───────────────────────────────────────────
+      - name: Prepare Release Description
+        id: prepare_body
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.versions.outputs.tag }}
-          PREV_TAG: ${{ steps.versions.outputs.prev_tag }}
-          TAG_DISPLAY: ${{ steps.versions.outputs.tag_display }}
-          MC_VERSION: ${{ steps.versions.outputs.mc_version }}
-          NEO_VERSION: ${{ steps.versions.outputs.neo_version }}
-          FABRIC_LOADER: ${{ steps.versions.outputs.fabric_loader }}
-          FABRIC_API: ${{ steps.versions.outputs.fabric_api }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          TODAY: ${{ steps.metadata.outputs.today }}
+          REPO: ${{ steps.metadata.outputs.repo }}
+          MC_VERSION: ${{ steps.metadata.outputs.mc_version }}
+          NEO_VERSION: ${{ steps.metadata.outputs.neo_version }}
+          FABRIC_LOADER: ${{ steps.metadata.outputs.fabric_loader }}
+          FABRIC_API: ${{ steps.metadata.outputs.fabric_api }}
         run: |
-          REPO="${GITHUB_REPOSITORY}"
-          COMPARE_URL="https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
-
-          # Fetch merged PRs between the two tags via GitHub CLI
-          PR_LIST=""
-          if [ -n "${PREV_TAG}" ]; then
-            PR_LIST=$(gh pr list \
-              --repo "${REPO}" \
-              --state merged \
-              --limit 100 \
-              --json number,title,author \
-              --jq '.[] | "* #\(.number) \(.title) by @\(.author.login)"' \
-              2>/dev/null || true)
-          fi
-
-          # Build the Markdown release body
           {
-            echo "## What's Changed"
+            echo "## [${TAG}](https://github.com/${REPO}/releases/tag/${TAG}) (${TODAY})"
             echo ""
-            if [ -n "${PR_LIST}" ]; then
-              echo "${PR_LIST}"
-            else
-              echo "_No merged pull requests found since the previous release._"
-            fi
-            echo ""
-            if [ -n "${PREV_TAG}" ]; then
-              echo "**Full Changelog**: ${COMPARE_URL}"
-            fi
-            echo ""
-            echo "---"
-            echo ""
-            echo "## Built with"
+            echo "### 🧱 Built with"
             echo ""
             echo "| Component | Version |"
             echo "|-----------|---------|"
-            echo "| Minecraft | \`${MC_VERSION}\` |"
-            echo "| NeoForge | \`${NEO_VERSION}\` |"
-            echo "| Fabric Loader | \`${FABRIC_LOADER}\` |"
-            echo "| Fabric API | \`${FABRIC_API}\` |"
+            echo "| 🟫 Minecraft | \`${MC_VERSION}\` |"
+            echo "| 🟠 NeoForge | \`${NEO_VERSION}\` |"
+            echo "| 🔵 Fabric Loader | \`${FABRIC_LOADER}\` |"
+            echo "| 🟢 Fabric API | \`${FABRIC_API}\` |"
             echo ""
-            echo "> Java ${{ env.JAVA_VERSION }} required."
+            echo "> **Java ${{ env.JAVA_VERSION }}** required."
+            echo ""
           } > /tmp/release_body.md
 
-          echo "Release body:"
+          echo "Generated body prefix:"
           cat /tmp/release_body.md
 
-      # ── 7. Create GitHub Release and upload all JARs ────────────────────────
+      # ── 7. Publish GitHub Release with Assets ──────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.versions.outputs.tag }}
-          name: "Elevator Slabs ${{ steps.versions.outputs.tag_display }}"
+          tag_name: ${{ steps.metadata.outputs.tag }}
+          name: ${{ steps.metadata.outputs.tag }}
           body_path: /tmp/release_body.md
+          generate_release_notes: true
           draft: false
-          # Set to true to mark as pre-release (e.g. alpha/beta builds)
-          prerelease: false
-          # Glob patterns capturing Fabric remapped jar + NeoForge jar only.
-          # Excludes: -dev.jar  -sources.jar  -shadow.jar  -all.jar
+          prerelease: ${{ steps.metadata.outputs.prerelease == 'true' }}
           files: |
             fabric-1.21.1/build/libs/elevatorslabs-*.jar
             neoforge-1.21.1/build/libs/elevatorslabs-*.jar

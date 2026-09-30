@@ -57,26 +57,7 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         ElevatorSlabBlockEntity tile = this.menu.getBlockEntity();
         boolean initialDirectional = tile != null && tile.isDirectional();
         boolean initialHideArrow = tile != null && tile.isHideArrow();
-        boolean hasCamo = false;
-        if (tile != null) {
-            net.minecraft.world.phys.HitResult hit = net.minecraft.client.Minecraft.getInstance().hitResult;
-            boolean topClicked = false;
-            if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
-                topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
-            }
-            net.minecraft.world.level.block.state.properties.SlabType type = tile.getBlockState().getValue(net.minecraft.world.level.block.SlabBlock.TYPE);
-            if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) {
-                hasCamo = tile.getCamouflagedBottomState() != null;
-            } else if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) {
-                hasCamo = tile.getCamouflagedTopState() != null;
-            } else {
-                if (tile.isAppliedAsFullBlock()) {
-                    hasCamo = tile.getCamouflagedBottomState() != null;
-                } else {
-                    hasCamo = topClicked ? tile.getCamouflagedTopState() != null : tile.getCamouflagedBottomState() != null;
-                }
-            }
-        }
+        boolean hasCamo = computeHasCamo(tile);
         this.selectedFacing = tile != null ? tile.getFacing() : Direction.NORTH;
 
         // Checkbox: Directional
@@ -175,30 +156,41 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         ));
     }
 
+    /**
+     * Determines whether the "Remove camouflage" button should be active.
+     */
+    private boolean computeHasCamo(ElevatorSlabBlockEntity tile) {
+        if (tile == null) return false;
+
+        net.minecraft.world.phys.HitResult hit = Minecraft.getInstance().hitResult;
+        boolean topClicked = false;
+        if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
+            topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
+        }
+
+        net.minecraft.world.level.block.state.properties.SlabType type = tile.getBlockState().hasProperty(net.minecraft.world.level.block.SlabBlock.TYPE)
+                ? tile.getBlockState().getValue(net.minecraft.world.level.block.SlabBlock.TYPE)
+                : net.minecraft.world.level.block.state.properties.SlabType.BOTTOM;
+
+        if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) {
+            return tile.getCamouflagedTopState() != null;
+        } else if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) {
+            return tile.getCamouflagedBottomState() != null;
+        } else {
+            if (tile.isAppliedAsFullBlock()) {
+                return tile.getCamouflagedBottomState() != null;
+            } else {
+                return topClicked ? tile.getCamouflagedTopState() != null : tile.getCamouflagedBottomState() != null;
+            }
+        }
+    }
+
     @Override
     public void containerTick() {
         super.containerTick();
         ElevatorSlabBlockEntity tile = this.menu.getBlockEntity();
         if (tile != null) {
-            boolean hasCamo = false;
-            net.minecraft.world.phys.HitResult hit = net.minecraft.client.Minecraft.getInstance().hitResult;
-            boolean topClicked = false;
-            if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
-                topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
-            }
-            net.minecraft.world.level.block.state.properties.SlabType type = tile.getBlockState().getValue(net.minecraft.world.level.block.SlabBlock.TYPE);
-            if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) {
-                hasCamo = tile.getCamouflagedBottomState() != null;
-            } else if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) {
-                hasCamo = tile.getCamouflagedTopState() != null;
-            } else {
-                if (tile.isAppliedAsFullBlock()) {
-                    hasCamo = tile.getCamouflagedBottomState() != null;
-                } else {
-                    hasCamo = topClicked ? tile.getCamouflagedTopState() != null : tile.getCamouflagedBottomState() != null;
-                }
-            }
-            this.resetCamoButton.active = hasCamo;
+            this.resetCamoButton.active = computeHasCamo(tile);
         }
     }
 
