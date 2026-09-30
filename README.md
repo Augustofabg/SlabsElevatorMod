@@ -1,15 +1,20 @@
 <div align="center">
 
  <img width="1000" height="800" alt="Slab_Elevator_logo" src="assets/Slab_Elevator_logo.png" />
-
  <br/> 
- 
   <a href="https://modrinth.com/mod/SEU-MOD">
     <img height="56" alt="Modrinth" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg">
   </a>
   <a href="https://minecraftforge.net">
     <img alt="curseforge" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg">
   </a>
+
+  ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub last commit](https://img.shields.io/github/last-commit/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub forks](https://img.shields.io/github/forks/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+  ![GitHub Repo stars](https://img.shields.io/github/stars/Augustofabg/SlabsElevatorMod?style=for-the-badge)
+
 
 <br/> 
 
@@ -20,37 +25,68 @@ Addon independente para o mod **[OpenBlocks Elevator](https://github.com/VsnGame
 </div>
 
 
+## 🌟 Funcionalidades & Mecânicas
 
+<div align="center">
+
+### 🎨 16 Variações de Cores
+*Paridade total com as cores padrão de corantes do Minecraft e compatibilidade com o mod base.*
+
+<br/>
+
+<img src="https://github.com/user-attachments/assets/6dacfa90-f283-4287-81d2-8e3cdb9c7dfd" width="480" alt="16 Cores das Elevator Slabs" style="border-radius: 8px;" />
+
+<br/>
+<br/>
 
 ---
 
-## 🌟 Funcionalidades e Mecânicas
+### 🛠️ Receitas de Criação (Crafting)
 
-- **16 Variações de Cores**: Inclui todas as 16 cores de corantes do Minecraft, em paridade visual e mecânica com o mod base.
-
-<div align="center">
-   <img width="400" height="200" alt="image" src="https://github.com/user-attachments/assets/6dacfa90-f283-4287-81d2-8e3cdb9c7dfd" />
 </div>
 
-- **Lógica de Teleporte Bidirecional**:
-  - Pressionar **Espaço (Jump)** teletransporta para o elevador ou laje de mesma cor acima.
-  - Pressionar **Shift (Sneak)** teletransporta para o elevador ou laje de mesma cor abaixo.
-  - Interoperabilidade total: teletransporte suave de **Laje ⇄ Bloco Completo** e **Laje ⇄ Laje**.
-
-- **Ender Cleaver**:
-  - Durabilidade de 15 usos. Permanece na bancada de trabalho (`crafting remainder`) consumindo 1 ponto de dano por operação.
-  - Usado para fatiar 1 bloco de elevador em 2 lajes (`elevatorslabs:elevator_slab_<cor>`).
- 
+<details>
+  <summary><strong>Ender Spindle</strong> <em>(Ferramenta de Corte)</em></summary>
+  <br/>
   
-- **Tela de Configuração Completa (Elevator Options GUI)**:
-  - Aberta ao clicar com o botão direito na Elevator Slab com a mão vazia ou agachado.
-  - Checkbox **Directional**: Força a rotação do jogador para a orientação configurada ao ser teleportado.
-  - Checkbox **Hide Arrow**: Oculta ou exibe a seta indicativa na laje.
-  - Botão **Remove Camouflage**: Limpa o bloco camuflado e devolve-o ao inventário do jogador.
+  <div align="center">
+    <img width="360" alt="Receita Ender Spindle" src="assets/ende_spindle_craft.png" style="border-radius: 6px;" />
+  </div>
+  
+  > **Detalhes do Item:**
+  > - **Durabilidade:** 15 usos antes de quebrar.
+  > - **Item Residual:** Permanece na bancada de trabalho ao craftar (*crafting remainder*), perdendo apenas 1 de durabilidade.
+  > - **Finalidade:** Utilizado para fatiar 1 bloco de elevador completo em 2 lajes.
+</details>
 
-- **Receitas de Crafting**:
-  - 1 Elevador original + 1 Ender Cleaver ➔ 2 Elevator Slabs (o cutelo perde 1 ponto de dano).
-  - 2 Elevator Slabs em linha vertical ➔ 1 Elevador completo.
+<br/>
+
+<details>
+  <summary><strong>Elevator Slab</strong> <em>(Fatiando o Elevador)</em></summary>
+  <br/>
+  
+  <div align="center">
+    <img width="360" alt="Receita Elevator Slab" src="assets/slab_elevator_craft.png" style="border-radius: 6px;" />
+  </div>
+  
+  > **Instruções:**
+  > - Combine **1 Bloco de Elevador** com o **Ender Spindle** na bancada de trabalho para obter **2 Elevator Slabs** da respectiva cor.
+</details>
+
+<br/>
+
+<details>
+  <summary><strong>Elevator Block</strong> <em>(Bloco Completo Base)</em></summary>
+  <br/>
+  
+  <div align="center">
+    <img width="360" alt="Receita OpenBlocks Elevator" src="assets/openblock_craft.png" style="border-radius: 6px;" />
+  </div>
+  
+  > **Referência:**
+  > - Posicione **1 Elevator Slab** acima e **1 Elevator Slab** abaixo com o **Ender Spindle** no centro da bancada de trabalho para fundir as duas metades em **1 Bloco de Elevador Completo**.
+</details>
+
 
 ---
 
