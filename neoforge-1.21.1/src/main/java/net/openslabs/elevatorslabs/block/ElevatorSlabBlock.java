@@ -194,37 +194,38 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
                 // ATUALIZAÇÃO DA BLOCK ENTITY:
                 if (wasFullBlock) {
-                    // Full block: limpa AMBAS as metades
-                    elevatorBe.setCamouflagedBottomState(null);
-                    elevatorBe.setCamouflagedTopState(null);
                     elevatorBe.setAppliedAsFullBlock(false);
                     elevatorBe.setFullBlockSource(null);
-                } else {
-                    // Lajes independentes: limpa APENAS a metade quebrada, preserva a outra
-                    if (brokeTop) {
-                        elevatorBe.setCamouflagedTopState(null);
-                    } else {
-                        elevatorBe.setCamouflagedBottomState(null);
-                    }
                 }
-                elevatorBe.setChanged();
+                if (brokeTop) {
+                    elevatorBe.setCamouflagedTopState(null);
+                } else {
+                    elevatorBe.setCamouflagedBottomState(null);
+                }
+            elevatorBe.setChanged();
 
-                // ATUALIZAR MUNDO E SINCRONIZAR CLIENTE:
-                level.setBlock(pos, newState, 3);
-                level.sendBlockUpdated(pos, state, newState, 3);
+            // ATUALIZAR MUNDO E SINCRONIZAR CLIENTE:
+            level.setBlock(pos, newState, 3);
+            level.sendBlockUpdated(pos, state, newState, 3);
+            
+            // Força a atualização do ModelData no cliente imediatamente
+            if (level.isClientSide) {
                 elevatorBe.requestModelDataUpdate();
                 level.sendBlockUpdated(pos, newState, newState, Block.UPDATE_ALL_IMMEDIATE);
+            } else {
                 elevatorBe.notifyUpdate();
-
-                if (!level.isClientSide) {
-                    level.levelEvent(player, 2001, pos, Block.getId(state));
+                BlockState brokenVisualState = brokeTop ? elevatorBe.getCamouflagedTopState() : elevatorBe.getCamouflagedBottomState();
+                if (brokenVisualState == null || brokenVisualState.isAir()) {
+                    brokenVisualState = state;
                 }
-
-                return false; // IMPEDE A ENGINE DE REMOVER O BLOCO INTEIRO
+                level.levelEvent(player, 2001, pos, Block.getId(brokenVisualState));
             }
+
+            return false; // IMPEDE A ENGINE DE REMOVER O BLOCO INTEIRO
         }
-        return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
     }
+    return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
+}
 
     @Override
     public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {
@@ -475,7 +476,6 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                     }
 
                     if (slabTile.isAppliedAsFullBlock()) {
-                        slabTile.setCamouflagedTopState(null);
                         slabTile.setAppliedAsFullBlock(false);
                         slabTile.setFullBlockSource(null);
                     }
@@ -496,7 +496,6 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                     }
 
                     if (slabTile.isAppliedAsFullBlock()) {
-                        slabTile.setCamouflagedBottomState(null);
                         slabTile.setAppliedAsFullBlock(false);
                         slabTile.setFullBlockSource(null);
                     }
@@ -620,13 +619,19 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
      * - Inspects the registry for slab variations of solid blocks (e.g., stone -> stone_slab,
      *   oak_planks -> oak_slab, stone_bricks -> stone_brick_slab, deepslate_tiles -> deepslate_tile_slab).
      */
+    private static final java.util.Map<Block, SlabBlock> SLAB_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
     @Nullable
     public static SlabBlock findCorrespondingSlab(Block block) {
+        if (block == null) return null;
         if (block instanceof ElevatorSlabBlock || block instanceof ElevatorBlockBase) {
             return null;
         }
         if (block instanceof SlabBlock slab) {
             return slab;
+        }
+        if (SLAB_CACHE.containsKey(block)) {
+            return SLAB_CACHE.get(block);
         }
 
         ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
@@ -638,25 +643,17 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         String path = key.getPath();
 
         List<String> candidates = new ArrayList<>();
-        // Direct suffix: e.g. stone -> stone_slab, cobblestone -> cobblestone_slab, granite -> granite_slab
         candidates.add(path + "_slab");
 
-        // Planks suffix: e.g. oak_planks -> oak_slab, birch_planks -> birch_slab
         if (path.endsWith("_planks")) {
             candidates.add(path.replace("_planks", "_slab"));
         }
-
-        // Bricks suffix: e.g. stone_bricks -> stone_brick_slab, mud_bricks -> mud_brick_slab
         if (path.endsWith("_bricks")) {
             candidates.add(path.substring(0, path.length() - 1) + "_slab");
         }
-
-        // Tiles suffix: e.g. deepslate_tiles -> deepslate_tile_slab
         if (path.endsWith("_tiles")) {
             candidates.add(path.substring(0, path.length() - 1) + "_slab");
         }
-
-        // Block suffix: e.g. quartz_block -> quartz_slab
         if (path.endsWith("_block")) {
             candidates.add(path.substring(0, path.length() - 6) + "_slab");
         }
@@ -668,11 +665,12 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 if (candidateBlock instanceof SlabBlock foundSlab
                         && !(candidateBlock instanceof ElevatorSlabBlock)
                         && !(candidateBlock instanceof ElevatorBlockBase)) {
+                    SLAB_CACHE.put(block, foundSlab);
                     return foundSlab;
                 }
             }
         }
-
+        SLAB_CACHE.put(block, null);
         return null;
     }
 }

@@ -17,6 +17,7 @@ import net.openslabs.elevatorslabs.util.ElevatorSearchHelper;
 /**
  * Client-side input event handler detecting Space (jump) and Shift (sneak)
  * on elevator slabs or original elevator blocks for Fabric 1.21.1.
+ * Ported from NeoForge using Fabric's ClientTickEvents.
  */
 public final class ElevatorSlabsClientHandler {
 
@@ -72,7 +73,7 @@ public final class ElevatorSlabsClientHandler {
             maxRange = (Integer) rangeObj.getClass().getMethod("get").invoke(rangeObj);
         } catch (Throwable ignored) {}
 
-        // Inter-colors: as 16 cores se comunicam livremente entre si
+        // Inter-colors: all 16 colors communicate freely
         ElevatorSearchHelper.TargetResult target =
                 ElevatorSearchHelper.findTargetElevator(level, fromPos, facing, fromColor, maxRange, false);
 

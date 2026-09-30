@@ -17,14 +17,16 @@ import net.openslabs.elevatorslabs.block.ElevatorSlabBlock;
 import net.openslabs.elevatorslabs.init.ModTags;
 
 /**
- * Event handler for intercepting interactions on original OpenBlocks Elevator blocks
- * and handling double elevator slab partial breaking on Fabric 1.21.1.
+ * Event handler for Fabric 1.21.1:
+ * 1. PlayerBlockBreakEvents.BEFORE: delegates partial DOUBLE slab breaking to ElevatorSlabBlock.
+ * 2. UseBlockCallback: prevents Elevator Slabs from being consumed as camo on full elevator blocks.
  */
 public final class ElevatorInteractionHandler {
 
     private ElevatorInteractionHandler() {}
 
     public static void register() {
+        // Hook for partial DOUBLE slab breaking
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> {
             if (state.getBlock() instanceof ElevatorSlabBlock slabBlock) {
                 return slabBlock.onPlayerBreakBlock(level, player, pos, state, blockEntity);
@@ -32,6 +34,7 @@ public final class ElevatorInteractionHandler {
             return true;
         });
 
+        // Hook to intercept right-clicks on full elevator blocks with an Elevator Slab in hand
         UseBlockCallback.EVENT.register((player, level, hand, hitResult) -> {
             BlockPos pos = hitResult.getBlockPos();
             BlockState state = level.getBlockState(pos);
@@ -52,7 +55,7 @@ public final class ElevatorInteractionHandler {
                 return InteractionResult.PASS;
             }
 
-            // On server side, open native options screen
+            // On server side, open native options screen of original elevator
             if (!level.isClientSide) {
                 BlockEntity be = level.getBlockEntity(pos);
                 if (be instanceof MenuProvider menuProvider) {

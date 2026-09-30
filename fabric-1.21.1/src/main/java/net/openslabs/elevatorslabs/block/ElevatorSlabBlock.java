@@ -3,21 +3,21 @@ package net.openslabs.elevatorslabs.block;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.vsngarcia.fabric.ElevatorBlock;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.SlabBlock;
@@ -36,17 +36,18 @@ import net.minecraft.world.phys.shapes.EntityCollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.openslabs.elevatorslabs.block.entity.ElevatorSlabBlockEntity;
-
 import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Base block for Elevator Slabs, extending vanilla SlabBlock while retaining
- * color identification, expanded camouflage support (slabs and full blocks with slab variants),
- * native Minecraft dynamic selection box per half for double slabs, selective half breaking,
- * and priority-based configuration GUI interactions.
+ * Base block for Elevator Slabs on Fabric 1.21.1.
+ * Ported directly from NeoForge 1.21.1 with Fabric-specific adaptations:
+ * - Interaction via vanilla useItemOn / useWithoutItem signatures
+ * - Partial breaking handled via onPlayerBreakBlock (called from ElevatorInteractionHandler)
+ * - Sound via SoundEvents (no Registry dependency for Fabric)
  */
 public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
@@ -130,11 +131,6 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         }
     }
 
-    @Override
-    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        return super.playerWillDestroy(level, pos, state, player);
-    }
-
     public static ItemStack getSlabItemForState(@Nullable BlockState state) {
         if (state == null || state.isAir()) {
             return ItemStack.EMPTY;
@@ -142,79 +138,91 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         return new ItemStack(state.getBlock().asItem());
     }
 
-    public boolean onPlayerBreakBlock(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity be) {
-        if (state.hasProperty(TYPE) && state.getValue(TYPE) == SlabType.DOUBLE) {
-            // Raycast preciso via player.pick()
-            double localY;
-            HitResult hit = player.pick(20.0D, 0.0F, false);
-            if (hit.getType() == HitResult.Type.BLOCK) {
-                localY = hit.getLocation().y - pos.getY();
-            } else {
-                localY = getHitY(level, pos, player);
-            }
-
-            // ZONA CENTRAL DE JUNÇÃO (0.45 <= localY <= 0.55): quebra as DUAS metades
-            if (localY >= 0.45D && localY <= 0.55D) {
-                return true; // Deixa a engine quebrar tudo (onRemove lida com drops)
-            }
-
-            BlockEntity targetBe = (be instanceof ElevatorSlabBlockEntity) ? be : level.getBlockEntity(pos);
-            if (targetBe instanceof ElevatorSlabBlockEntity elevatorBe) {
-                boolean brokeTop = localY > 0.55D;
-                // localY < 0.45 → quebrou a base (novo estado = TOP)
-                // localY > 0.55 → quebrou o topo (novo estado = BOTTOM)
-                BlockState newState = state.setValue(SlabBlock.TYPE, brokeTop ? SlabType.BOTTOM : SlabType.TOP);
-                boolean wasFullBlock = elevatorBe.isAppliedAsFullBlock();
-
-                // CONTROLE DE DROPS (Survival apenas):
-                if (!level.isClientSide && !player.isCreative()) {
-                    popResource(level, pos, new ItemStack(this.asItem())); // 1 Elevator Slab
-
-                    if (wasFullBlock) {
-                        ItemStack fullDrop = elevatorBe.getFullBlockDropStack();
-                        if (!fullDrop.isEmpty()) {
-                            popResource(level, pos, fullDrop);
-                        }
-                    } else {
-                        BlockState brokenCamo = brokeTop
-                                ? elevatorBe.getCamouflagedTopState()
-                                : elevatorBe.getCamouflagedBottomState();
-                        if (brokenCamo != null && !brokenCamo.isAir()) {
-                            popResource(level, pos, getSlabItemForState(brokenCamo));
-                        }
-                    }
-                }
-                // SE FOR CRIATIVO: NÃO DROPAR ABSOLUTAMENTE NADA!
-
-                // ATUALIZAÇÃO DA BLOCK ENTITY:
-                if (wasFullBlock) {
-                    elevatorBe.setCamouflagedBottomState(null);
-                    elevatorBe.setCamouflagedTopState(null);
-                    elevatorBe.setAppliedAsFullBlock(false);
-                    elevatorBe.setFullBlockSource(null);
-                } else {
-                    if (brokeTop) {
-                        elevatorBe.setCamouflagedTopState(null);
-                    } else {
-                        elevatorBe.setCamouflagedBottomState(null);
-                    }
-                }
-                elevatorBe.setChanged();
-
-                // ATUALIZAR MUNDO E SINCRONIZAR CLIENTE:
-                level.setBlock(pos, newState, 3);
-                level.sendBlockUpdated(pos, state, newState, 3);
-                elevatorBe.requestModelDataUpdate();
-                level.sendBlockUpdated(pos, newState, newState, Block.UPDATE_ALL_IMMEDIATE);
-                elevatorBe.notifyUpdate();
-
-                if (!level.isClientSide) {
-                    level.levelEvent(player, 2001, pos, Block.getId(state));
-                }
-
-                return false; // IMPEDE A ENGINE DE REMOVER O BLOCO INTEIRO
-            }
+    /**
+     * Called from ElevatorInteractionHandler (Fabric's PlayerBlockBreakEvents.BEFORE).
+     * Handles partial DOUBLE slab breaking with drops, sound, and particles.
+     * Returns false to cancel the break (when we handle it), true to allow normal break.
+     */
+    public boolean onPlayerBreakBlock(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity) {
+        if (!state.hasProperty(TYPE) || state.getValue(TYPE) != SlabType.DOUBLE) {
+            // Single slab – let normal break proceed
+            return true;
         }
+
+        // Raycast precise Y
+        double localY;
+        HitResult hit = player.pick(20.0D, 0.0F, false);
+        if (hit.getType() == HitResult.Type.BLOCK) {
+            localY = hit.getLocation().y - pos.getY();
+        } else {
+            localY = getHitY(level, pos, player);
+        }
+
+        // CENTRAL ZONE (0.45 <= localY <= 0.55): break BOTH halves at once
+        if (localY >= 0.45D && localY <= 0.55D) {
+            // Let normal break handle full removal
+            return true;
+        }
+
+        if (blockEntity instanceof ElevatorSlabBlockEntity elevatorBe) {
+            boolean brokeTop = localY > 0.55D;
+            // localY < 0.45 → broke bottom (new state = TOP)
+            // localY > 0.55 → broke top (new state = BOTTOM)
+            BlockState newState = state.setValue(SlabBlock.TYPE, brokeTop ? SlabType.BOTTOM : SlabType.TOP);
+            boolean wasFullBlock = elevatorBe.isAppliedAsFullBlock();
+
+            // DROPS (Survival only):
+            if (!level.isClientSide && !player.isCreative()) {
+                popResource(level, pos, new ItemStack(this.asItem())); // 1 Elevator Slab
+
+                if (wasFullBlock) {
+                    // Full block: drop the original full block
+                    ItemStack fullDrop = elevatorBe.getFullBlockDropStack();
+                    if (!fullDrop.isEmpty()) {
+                        popResource(level, pos, fullDrop);
+                    }
+                } else {
+                    // Independent slabs: drop only the broken half's slab
+                    BlockState brokenCamo = brokeTop
+                            ? elevatorBe.getCamouflagedTopState()
+                            : elevatorBe.getCamouflagedBottomState();
+                    if (brokenCamo != null && !brokenCamo.isAir()) {
+                        popResource(level, pos, getSlabItemForState(brokenCamo));
+                    }
+                }
+            }
+
+            // UPDATE BLOCK ENTITY:
+            if (wasFullBlock) {
+                elevatorBe.setAppliedAsFullBlock(false);
+                elevatorBe.setFullBlockSource(null);
+            }
+            if (brokeTop) {
+                elevatorBe.setCamouflagedTopState(null);
+            } else {
+                elevatorBe.setCamouflagedBottomState(null);
+            }
+            elevatorBe.setChanged();
+
+            // UPDATE WORLD:
+            level.setBlock(pos, newState, Block.UPDATE_ALL);
+            level.sendBlockUpdated(pos, state, newState, Block.UPDATE_ALL);
+
+            // Play break sound and emit particles on server
+            if (!level.isClientSide) {
+                BlockState brokenVisualState = brokeTop ? elevatorBe.getCamouflagedTopState() : elevatorBe.getCamouflagedBottomState();
+                if (brokenVisualState == null || brokenVisualState.isAir()) {
+                    brokenVisualState = state;
+                }
+                level.levelEvent(player, 2001, pos, Block.getId(brokenVisualState));
+                SoundType soundType = brokenVisualState.getSoundType();
+                level.playSound(null, pos, soundType.getBreakSound(), SoundSource.BLOCKS,
+                        soundType.getVolume(), soundType.getPitch());
+            }
+
+            return false; // PREVENT ENGINE FROM REMOVING THE ENTIRE BLOCK
+        }
+
         return true;
     }
 
@@ -252,7 +260,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
     }
 
     @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable net.minecraft.world.entity.LivingEntity placer, ItemStack stack) {
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
         if (!level.isClientSide && state.hasProperty(TYPE)) {
             SlabType type = state.getValue(TYPE);
@@ -273,11 +281,11 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        // Se está trocando para um bloco diferente (não é transição DOUBLE→BOTTOM/TOP do mesmo bloco)
+        // If switching to a different block (not DOUBLE→BOTTOM/TOP transition of the same block)
         if (!state.is(newState.getBlock())) {
             super.onRemove(state, level, pos, newState, isMoving);
         }
-        // Se é o mesmo bloco mudando de tipo, NÃO chamamos super para preservar a BlockEntity.
+        // If same block changing type (via onPlayerBreakBlock), don't call super to preserve BlockEntity
     }
 
     protected double getHitY(Level level, BlockPos pos, Player player) {
@@ -306,24 +314,13 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
 
         SlabType slabType = state.hasProperty(SlabBlock.TYPE) ? state.getValue(SlabBlock.TYPE) : SlabType.BOTTOM;
 
-        // If holding matching slab on a single slab without sneaking, pass to allow placing second slab to form DOUBLE:
+        // If holding matching slab on a single slab without sneaking, allow placing second slab:
         if (!player.isShiftKeyDown() && slabType != SlabType.DOUBLE && itemStack.is(this.asItem())) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
         // ==========================================================
-        // 0. Elevator as configuration tool:
-        // ==========================================================
-        if (itemStack.getItem() instanceof BlockItem blockItem) {
-            Block heldBlock = blockItem.getBlock();
-            if (heldBlock instanceof ElevatorSlabBlock || heldBlock instanceof ElevatorBlock) {
-                player.openMenu(slabTile);
-                return ItemInteractionResult.SUCCESS;
-            }
-        }
-
-        // ==========================================================
-        // 1. Shift + Right-click camouflage removal
+        // 1. Shift + Right Click (Camouflage Removal):
         // ==========================================================
         if (player.isShiftKeyDown()) {
             if (!slabTile.hasAnyCamo()) {
@@ -387,7 +384,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         }
 
         // ==========================================================
-        // 2. REGRA C: Mão vazia, ferramenta ou bloco inválido
+        // 2. RULE C: Empty hand, tool or invalid block
         // ==========================================================
         if (itemStack.isEmpty() || !(itemStack.getItem() instanceof BlockItem blockItem)) {
             player.openMenu(slabTile);
@@ -404,7 +401,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         SlabBlock correspondingSlab = findCorrespondingSlab(heldBlock);
 
         // ==========================================================
-        // 3. REGRA A: Bloco sólido completo em DOUBLE
+        // 3. RULE A: Solid full block on DOUBLE
         // ==========================================================
         if (!isSlabItem && slabType == SlabType.DOUBLE) {
             BlockState bottomState;
@@ -449,7 +446,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         }
 
         // ==========================================================
-        // 4. REGRA B: Laje (Slab) ou bloco com versão slab
+        // 4. RULE B: Slab or block with slab variant
         // ==========================================================
         if (isSlabItem || correspondingSlab != null) {
             SlabBlock slabToUse = isSlabItem ? (SlabBlock) heldBlock : correspondingSlab;
@@ -477,7 +474,6 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                     }
 
                     if (slabTile.isAppliedAsFullBlock()) {
-                        slabTile.setCamouflagedTopState(null);
                         slabTile.setAppliedAsFullBlock(false);
                         slabTile.setFullBlockSource(null);
                     }
@@ -498,7 +494,6 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                     }
 
                     if (slabTile.isAppliedAsFullBlock()) {
-                        slabTile.setCamouflagedBottomState(null);
                         slabTile.setAppliedAsFullBlock(false);
                         slabTile.setFullBlockSource(null);
                     }
@@ -614,19 +609,19 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         return null;
     }
 
-    /**
-     * Resolves a block to its corresponding SlabBlock:
-     * - Returns the slab itself if the block is already a SlabBlock.
-     * - Inspects the registry for slab variations of solid blocks (e.g., stone -> stone_slab,
-     *   oak_planks -> oak_slab, stone_bricks -> stone_brick_slab, deepslate_tiles -> deepslate_tile_slab).
-     */
+    private static final java.util.Map<Block, SlabBlock> SLAB_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
     @Nullable
     public static SlabBlock findCorrespondingSlab(Block block) {
+        if (block == null) return null;
         if (block instanceof ElevatorSlabBlock || block instanceof ElevatorBlock) {
             return null;
         }
         if (block instanceof SlabBlock slab) {
             return slab;
+        }
+        if (SLAB_CACHE.containsKey(block)) {
+            return SLAB_CACHE.get(block);
         }
 
         ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
@@ -638,25 +633,17 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         String path = key.getPath();
 
         List<String> candidates = new ArrayList<>();
-        // Direct suffix: e.g. stone -> stone_slab, cobblestone -> cobblestone_slab, granite -> granite_slab
         candidates.add(path + "_slab");
 
-        // Planks suffix: e.g. oak_planks -> oak_slab, birch_planks -> birch_slab
         if (path.endsWith("_planks")) {
             candidates.add(path.replace("_planks", "_slab"));
         }
-
-        // Bricks suffix: e.g. stone_bricks -> stone_brick_slab, mud_bricks -> mud_brick_slab
         if (path.endsWith("_bricks")) {
             candidates.add(path.substring(0, path.length() - 1) + "_slab");
         }
-
-        // Tiles suffix: e.g. deepslate_tiles -> deepslate_tile_slab
         if (path.endsWith("_tiles")) {
             candidates.add(path.substring(0, path.length() - 1) + "_slab");
         }
-
-        // Block suffix: e.g. quartz_block -> quartz_slab
         if (path.endsWith("_block")) {
             candidates.add(path.substring(0, path.length() - 6) + "_slab");
         }
@@ -668,11 +655,12 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 if (candidateBlock instanceof SlabBlock foundSlab
                         && !(candidateBlock instanceof ElevatorSlabBlock)
                         && !(candidateBlock instanceof ElevatorBlock)) {
+                    SLAB_CACHE.put(block, foundSlab);
                     return foundSlab;
                 }
             }
         }
-
+        SLAB_CACHE.put(block, null);
         return null;
     }
 }

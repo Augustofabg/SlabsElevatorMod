@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.openslabs.elevatorslabs.ElevatorSlabsMod;
 
 /**
- * Network payload sent from the client to the server when elevator options are modified in the GUI.
+ * Network payload sent from client to server when elevator options are modified in the GUI.
  */
 public record UpdateSlabOptionsPayload(
         BlockPos pos,

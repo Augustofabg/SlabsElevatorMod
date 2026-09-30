@@ -1,5 +1,7 @@
 package net.openslabs.elevatorslabs.block.entity;
 
+import net.fabricmc.fabric.api.rendering.data.v1.RenderAttachmentBlockEntity;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -7,7 +9,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -24,15 +25,25 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.openslabs.elevatorslabs.block.ElevatorSlabBlock;
+import net.openslabs.elevatorslabs.client.render.ElevatorRenderData;
 import net.openslabs.elevatorslabs.init.ModBlockEntities;
 import net.openslabs.elevatorslabs.menu.ElevatorOptionsMenu;
-
 import org.jetbrains.annotations.Nullable;
 
 /**
  * BlockEntity for Elevator Slabs on Fabric 1.21.1.
+ * Stores configuration state:
+ * - directional: whether forced rotation on teleport is enabled (default false)
+ * - facing: the Direction the player faces upon arrival (default NORTH)
+ * - hideArrow: whether the directional indicator arrow should be hidden (default false)
+ * - camouflagedBottom: optional disguised appearance for the bottom slab half
+ * - camouflagedTop: optional disguised appearance for the top slab half
+ * - appliedAsFullBlock: whether the disguise came from a solid full block covering the space
+ * - fullBlockSource: the original full block used when appliedAsFullBlock is true
+ *
+ * Implements RenderAttachmentBlockEntity (FRAPI) to deliver render data cleanly to the BakedModel.
  */
-public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<ElevatorOptionsMenu.PosPayload> {
+public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<ElevatorOptionsMenu.PosPayload>, RenderAttachmentBlockEntity {
 
     private boolean directional = false;
     private Direction facing = Direction.NORTH;
@@ -45,6 +56,11 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
     private boolean appliedAsFullBlock = false;
     @Nullable
     private Block fullBlockSource = null;
+
+    /** Transient: tracks which half was targeted when opening GUI (used for camo removal). */
+    private transient boolean lastTargetedTopHalf = false;
+    public void setLastTargetedTopHalf(boolean top) { this.lastTargetedTopHalf = top; }
+    public boolean isLastTargetedTopHalf() { return this.lastTargetedTopHalf; }
 
     public ElevatorSlabBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ELEVATOR_SLAB_BLOCK_ENTITY, pos, state);
@@ -99,7 +115,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
             this.fullBlockSource = null;
         }
 
-        // Load bottom camouflage strictly
+        // Load bottom camouflage strictly (with legacy fallbacks)
         if (tag.contains("CamouflagedBottom", CompoundTag.TAG_COMPOUND)) {
             try {
                 this.camouflagedBottomState = NbtUtils.readBlockState(registries.lookupOrThrow(Registries.BLOCK), tag.getCompound("CamouflagedBottom"));
@@ -122,7 +138,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
             this.camouflagedBottomState = null;
         }
 
-        // Load top camouflage strictly
+        // Load top camouflage strictly (with legacy fallbacks)
         if (tag.contains("CamouflagedTop", CompoundTag.TAG_COMPOUND)) {
             try {
                 this.camouflagedTopState = NbtUtils.readBlockState(registries.lookupOrThrow(Registries.BLOCK), tag.getCompound("CamouflagedTop"));
@@ -145,6 +161,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
             this.camouflagedTopState = null;
         }
 
+        // Legacy single-block tag migration
         if (this.camouflagedBottomState == null && this.camouflagedTopState == null && tag.contains("camouflagedBlock", CompoundTag.TAG_COMPOUND)) {
             try {
                 BlockState legacy = NbtUtils.readBlockState(registries.lookupOrThrow(Registries.BLOCK), tag.getCompound("camouflagedBlock"));
@@ -161,6 +178,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
             } catch (Exception ignored) {}
         }
 
+        // Trigger client re-render after load
         if (this.level != null && this.level.isClientSide) {
             BlockState currentState = this.getBlockState();
             this.level.sendBlockUpdated(this.worldPosition, currentState, currentState, 3);
@@ -179,6 +197,28 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
     }
+
+    // =========================================================
+    // FRAPI: RenderAttachmentBlockEntity
+    // =========================================================
+
+    /**
+     * Provides render data to the Fabric Renderer via RenderAttachedBlockView.
+     * This is the primary, correct channel for FRAPI-based rendering.
+     */
+    @Override
+    public Object getRenderAttachmentData() {
+        return new ElevatorRenderData(
+                this.camouflagedBottomState,
+                this.camouflagedTopState,
+                this.appliedAsFullBlock,
+                this.fullBlockSource
+        );
+    }
+
+    // =========================================================
+    // Getters / Setters
+    // =========================================================
 
     public boolean isDirectional() {
         return this.directional;
@@ -359,6 +399,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
         return true;
     }
 
+    /** Triggers a client-side re-render (Fabric equivalent of NeoForge's requestModelDataUpdate). */
     public void requestModelDataUpdate() {
         if (this.level != null && this.level.isClientSide) {
             BlockState currentState = this.getBlockState();

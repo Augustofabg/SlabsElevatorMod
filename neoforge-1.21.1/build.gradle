@@ -10,7 +10,13 @@ version = "${project.mod_version}+mc${project.minecraft_version}-neoforge"
 group = project.mod_group_id
 
 base {
-    archivesName = "elevatorslabs-neoforge-1.21.1"
+    archivesName = "elevatorslabs"
+}
+
+tasks.named('jar', Jar).configure {
+    archiveBaseName.set("elevatorslabs")
+    archiveVersion.set("${project.minecraft_version}-${project.mod_version}-neoforge")
+    archiveClassifier.set("")
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)

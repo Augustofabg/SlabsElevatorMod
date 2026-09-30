@@ -13,21 +13,19 @@ import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.AABB;
 import net.openslabs.elevatorslabs.block.ElevatorSlabBlock;
 import net.openslabs.elevatorslabs.init.ModTags;
-
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility helper that unifies elevator detection, color extraction,
- * height offset calculations, and safe destination verification across
- * both ElevatorSlabBlock and OpenBlocks Elevator blocks.
+ * height offset calculations, and safe destination verification for Fabric 1.21.1.
+ * Ported from NeoForge with ElevatorBlock (Fabric) instead of ElevatorBlockBase (NeoForge).
  */
 public final class ElevatorSearchHelper {
 
     private ElevatorSearchHelper() {}
 
     /**
-     * Checks if a given BlockState is recognized as an elevator (either a slab,
-     * an elevatorid ElevatorBlock, or tagged with elevator tags).
+     * Checks if a given BlockState is recognized as an elevator.
      */
     public static boolean isElevator(@Nullable BlockState state) {
         if (state == null || state.isAir()) {
@@ -85,33 +83,28 @@ public final class ElevatorSearchHelper {
     }
 
     /**
-     * Determines whether the target position is safe for the player to teleport to,
-     * ensuring no collision or suffocation with solid blocks.
+     * Determines whether the target position is safe for the player to teleport to.
      */
     public static boolean isSafeDestination(Level level, @Nullable Entity entity, double x, double feetY, double z, BlockPos toPos) {
         double width = entity != null ? entity.getBbWidth() : 0.6D;
         double height = entity != null ? entity.getBbHeight() : 1.8D;
         double halfWidth = width / 2.0D;
 
-        // Bounding box from player's feet to top of head at destination
         AABB targetBox = new AABB(
                 x - halfWidth, feetY, z - halfWidth,
                 x + halfWidth, feetY + height, z + halfWidth
         );
 
-        // Check 1: Level collision check (blocks and world borders)
         if (!level.noCollision(entity, targetBox)) {
             return false;
         }
 
-        // Check 2: Suffocation check for the player's head / eyes
         double eyeHeight = entity != null ? entity.getEyeHeight() : 1.62D;
         BlockPos eyePos = BlockPos.containing(x, feetY + eyeHeight, z);
         if (level.getBlockState(eyePos).isSuffocating(level, eyePos)) {
             return false;
         }
 
-        // Check 3: Suffocation check for the player's torso
         BlockPos bodyPos = BlockPos.containing(x, feetY + 0.2D, z);
         if (bodyPos.getY() != toPos.getY() && level.getBlockState(bodyPos).isSuffocating(level, bodyPos)) {
             return false;
@@ -122,14 +115,12 @@ public final class ElevatorSearchHelper {
 
     /**
      * Finds the elevator block the player is currently standing on.
-     * Takes into account the Y offset of slabs (+0.5 for BOTTOM, +1.0 for TOP/DOUBLE/Full).
      */
     @Nullable
     public static BlockPos getOriginElevator(Player player) {
         Level level = player.level();
         BlockPos feetPos = BlockPos.containing(player.getX(), player.getY(), player.getZ());
 
-        // 1. Check feetPos directly (covers BOTTOM slabs where player Y is around feetPos.getY() + 0.5)
         BlockState stateAtFeet = level.getBlockState(feetPos);
         if (isElevator(stateAtFeet)) {
             double surfaceY = feetPos.getY() + getYOffset(stateAtFeet);
@@ -138,7 +129,6 @@ public final class ElevatorSearchHelper {
             }
         }
 
-        // 2. Check feetPos.below() (covers TOP/DOUBLE slabs and full elevator blocks where player Y is feetPos.getY() + 1.0)
         BlockPos belowPos = feetPos.below();
         BlockState stateBelow = level.getBlockState(belowPos);
         if (isElevator(stateBelow)) {
@@ -148,7 +138,6 @@ public final class ElevatorSearchHelper {
             }
         }
 
-        // 3. Fallback for players stepping or slightly floating above the surface
         if (isElevator(stateAtFeet)) return feetPos;
         if (isElevator(stateBelow)) return belowPos;
 
@@ -176,7 +165,6 @@ public final class ElevatorSearchHelper {
             if (isElevator(state)) {
                 DyeColor targetColor = getColor(state);
 
-                // Match color if sameColor is required
                 if (!sameColor || (originColor != null && originColor == targetColor)) {
                     double yOffset = getYOffset(state);
                     double destX = currentPos.getX() + 0.5D;

@@ -1,8 +1,0 @@
-﻿{
-    "parent":  "minecraft:block/slab",
-    "textures":  {
-                     "bottom":  "elevatorid:block/elevator_gray",
-                     "top":  "elevatorid:block/elevator_gray",
-                     "side":  "elevatorid:block/elevator_gray"
-                 }
-}

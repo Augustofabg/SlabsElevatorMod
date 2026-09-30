@@ -44,20 +44,25 @@ public final class UpdateSlabOptionsHandler {
 
             // Handle camouflage reset if requested
             if (payload.resetCamo()) {
-                BlockState oldBottom = slabEntity.getCamouflagedBottom();
-                BlockState oldTop = slabEntity.getCamouflagedTop();
-                if (oldBottom != null || oldTop != null) {
+                if (slabEntity.isAppliedAsFullBlock()) {
+                    ItemStack dropStack = slabEntity.getFullBlockDropStack();
                     slabEntity.clearAllCamo();
-                    if (!player.isCreative()) {
-                        if (oldBottom != null) {
-                            ItemStack returnStack = new ItemStack(oldBottom.getBlock().asItem());
-                            if (!returnStack.isEmpty()) {
-                                if (!player.getInventory().add(returnStack)) {
-                                    player.drop(returnStack, false);
-                                }
-                            }
+                    if (!player.isCreative() && !dropStack.isEmpty()) {
+                        if (!player.getInventory().add(dropStack)) {
+                            player.drop(dropStack, false);
                         }
-                        if (oldTop != null) {
+                    }
+                } else {
+                    net.minecraft.world.level.block.state.BlockState currentState = level.getBlockState(pos);
+                    net.minecraft.world.level.block.state.properties.SlabType type = currentState.getValue(net.minecraft.world.level.block.SlabBlock.TYPE);
+                    boolean targetTop = slabEntity.isLastTargetedTopHalf();
+                    if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) targetTop = true;
+                    if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) targetTop = false;
+
+                    if (targetTop) {
+                        BlockState oldTop = slabEntity.getCamouflagedTop();
+                        slabEntity.setCamouflagedTop(null);
+                        if (!player.isCreative() && oldTop != null) {
                             ItemStack returnStack = new ItemStack(oldTop.getBlock().asItem());
                             if (!returnStack.isEmpty()) {
                                 if (!player.getInventory().add(returnStack)) {
@@ -65,11 +70,22 @@ public final class UpdateSlabOptionsHandler {
                                 }
                             }
                         }
+                    } else {
+                        BlockState oldBottom = slabEntity.getCamouflagedBottom();
+                        slabEntity.setCamouflagedBottom(null);
+                        if (!player.isCreative() && oldBottom != null) {
+                            ItemStack returnStack = new ItemStack(oldBottom.getBlock().asItem());
+                            if (!returnStack.isEmpty()) {
+                                if (!player.getInventory().add(returnStack)) {
+                                    player.drop(returnStack, false);
+                                }
+                            }
+                        }
                     }
-                    try {
-                        level.playSound(null, pos, Registry.CAMOUFLAGE_SOUND.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
-                    } catch (Throwable ignored) {}
                 }
+                try {
+                    level.playSound(null, pos, Registry.CAMOUFLAGE_SOUND.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
+                } catch (Throwable ignored) {}
             }
 
             slabEntity.setChanged();

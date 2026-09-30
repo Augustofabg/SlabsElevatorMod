@@ -3,11 +3,23 @@ plugins {
     id 'maven-publish'
 }
 
-version = "${mod_version}+mc1.21.1-fabric"
+version = "${mod_version}"
 group = mod_group_id
 
 base {
-    archivesName = "${mod_id}-fabric-1.21.1"
+    archivesName = "elevatorslabs-1.21.1-${project.mod_version}-fabric"
+}
+
+tasks.named('jar', Jar).configure {
+    archiveBaseName.set("elevatorslabs-1.21.1-${project.mod_version}-fabric")
+    archiveVersion.set("")
+    archiveClassifier.set("")
+}
+
+tasks.named('remapJar').configure {
+    archiveBaseName.set("elevatorslabs-1.21.1-${project.mod_version}-fabric")
+    archiveVersion.set("")
+    archiveClassifier.set("")
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -39,7 +51,7 @@ dependencies {
 }
 
 processResources {
-    var modVersion = project.version.toString()
+    var modVersion = project.mod_version.toString()
     inputs.property "version", modVersion
     filesMatching("fabric.mod.json") {
         expand "version": modVersion

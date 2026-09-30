@@ -6,12 +6,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.openslabs.elevatorslabs.block.entity.ElevatorSlabBlockEntity;
 
 /**
  * Server-side handler for UpdateSlabOptionsPayload on Fabric 1.21.1.
+ *
+ * BUG FIX: Camouflage removal now correctly identifies the target half based on SlabType:
+ * - SlabType.TOP  → removes camouflagedTopState (was incorrectly using bottom before)
+ * - SlabType.BOTTOM → removes camouflagedBottomState
+ * - SlabType.DOUBLE → uses wasFullBlock flag or clickedY from lastTargetedTopHalf
  */
 public final class UpdateSlabOptionsHandler {
 
@@ -34,27 +41,41 @@ public final class UpdateSlabOptionsHandler {
             return;
         }
 
-        // Apply directional and orientation
+        // Apply directional and orientation settings
         slabEntity.setDirectional(payload.directional());
         slabEntity.setHideArrow(payload.hideArrow());
         slabEntity.setFacing(payload.facing());
 
         // Handle camouflage reset if requested
         if (payload.resetCamo()) {
-            BlockState oldBottom = slabEntity.getCamouflagedBottom();
-            BlockState oldTop = slabEntity.getCamouflagedTop();
-            if (oldBottom != null || oldTop != null) {
+            if (slabEntity.isAppliedAsFullBlock()) {
+                // CASE: Full-block camouflage → drop the full block and clear everything
+                ItemStack dropStack = slabEntity.getFullBlockDropStack();
                 slabEntity.clearAllCamo();
-                if (!player.isCreative()) {
-                    if (oldBottom != null) {
-                        ItemStack returnStack = new ItemStack(oldBottom.getBlock().asItem());
-                        if (!returnStack.isEmpty()) {
-                            if (!player.getInventory().add(returnStack)) {
-                                player.drop(returnStack, false);
-                            }
-                        }
+                if (!player.isCreative() && !dropStack.isEmpty()) {
+                    if (!player.getInventory().add(dropStack)) {
+                        player.drop(dropStack, false);
                     }
-                    if (oldTop != null) {
+                }
+            } else {
+                // CASE: Independent slab halves → determine which half to clear
+                BlockState currentState = level.getBlockState(pos);
+                SlabType type = currentState.hasProperty(SlabBlock.TYPE)
+                        ? currentState.getValue(SlabBlock.TYPE)
+                        : SlabType.BOTTOM;
+
+                // Determine the target half:
+                // - For single slabs (TOP or BOTTOM): use the block's type directly
+                // - For DOUBLE slabs: use the lastTargetedTopHalf set when the GUI was opened
+                boolean targetTop = slabEntity.isLastTargetedTopHalf();
+                if (type == SlabType.TOP) targetTop = true;    // BUG FIX: TOP slab always targets top
+                if (type == SlabType.BOTTOM) targetTop = false; // BOTTOM slab always targets bottom
+
+                if (targetTop) {
+                    // CASE A: Remove top camouflage (SlabType.TOP or upper half of DOUBLE)
+                    BlockState oldTop = slabEntity.getCamouflagedTopState();
+                    slabEntity.setCamouflagedTopState(null);
+                    if (!player.isCreative() && oldTop != null && !oldTop.isAir()) {
                         ItemStack returnStack = new ItemStack(oldTop.getBlock().asItem());
                         if (!returnStack.isEmpty()) {
                             if (!player.getInventory().add(returnStack)) {
@@ -62,9 +83,25 @@ public final class UpdateSlabOptionsHandler {
                             }
                         }
                     }
+                } else {
+                    // CASE B: Remove bottom camouflage (SlabType.BOTTOM or lower half of DOUBLE)
+                    BlockState oldBottom = slabEntity.getCamouflagedBottomState();
+                    slabEntity.setCamouflagedBottomState(null);
+                    if (!player.isCreative() && oldBottom != null && !oldBottom.isAir()) {
+                        ItemStack returnStack = new ItemStack(oldBottom.getBlock().asItem());
+                        if (!returnStack.isEmpty()) {
+                            if (!player.getInventory().add(returnStack)) {
+                                player.drop(returnStack, false);
+                            }
+                        }
+                    }
                 }
-                level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
             }
+
+            // Play camouflage removal sound
+            try {
+                level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+            } catch (Throwable ignored) {}
         }
 
         slabEntity.setChanged();

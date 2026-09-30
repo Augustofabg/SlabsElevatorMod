@@ -1,6 +1,5 @@
 package net.openslabs.elevatorslabs.init;
 
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -19,10 +18,10 @@ public final class ModBlockEntities {
         ELEVATOR_SLAB_BLOCK_ENTITY = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath(ElevatorSlabsMod.MOD_ID, "elevator_slab"),
-                FabricBlockEntityTypeBuilder.create(
+                BlockEntityType.Builder.of(
                         ElevatorSlabBlockEntity::new,
                         ModBlocks.getAllSlabs()
-                ).build()
+                ).build(null)
         );
     }
 

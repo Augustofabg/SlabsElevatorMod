@@ -1,12 +1,13 @@
 package net.openslabs.elevatorslabs.network;
 
+import com.vsngarcia.fabric.ElevatorBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.RelativeMovement;
-import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.openslabs.elevatorslabs.block.ElevatorSlabBlock;
@@ -16,6 +17,8 @@ import java.util.EnumSet;
 
 /**
  * Server-side handler for elevator slab teleportation requests on Fabric 1.21.1.
+ * Ported from NeoForge: ElevatorBlock (Fabric) replaces ElevatorBlockBase (NeoForge).
+ * The DIRECTIONAL block property is accessed via ElevatorBlock.DIRECTIONAL (static field).
  */
 public final class TeleportSlabHandler {
 
@@ -52,9 +55,6 @@ public final class TeleportSlabHandler {
             return;
         }
 
-        // 2. Inter-colors: as 16 cores se comunicam livremente entre si (branco conecta com vermelho, azul, etc.)
-        // Nenhum bloqueio por diferenca de cor entre fromState e toState.
-
         // Precision destination calculation
         double targetYOffset = ElevatorSearchHelper.getYOffset(toState);
         double destX = toPos.getX() + 0.5D;
@@ -76,15 +76,27 @@ public final class TeleportSlabHandler {
                 yaw = slabEntity.getFacing().toYRot();
                 pitch = 0.0F;
             }
+        } else if (toState.getBlock() instanceof ElevatorBlock) {
+            // ElevatorBlock (Fabric) uses DIRECTIONAL BooleanProperty and FACING
+            try {
+                if (toState.hasProperty(ElevatorBlock.DIRECTIONAL)
+                        && toState.getValue(ElevatorBlock.DIRECTIONAL)
+                        && toState.hasProperty(HorizontalDirectionalBlock.FACING)) {
+                    yaw = toState.getValue(HorizontalDirectionalBlock.FACING).toYRot();
+                    pitch = 0.0F;
+                }
+            } catch (Throwable ignored) {}
         }
 
         // Teleport player safely to target
         player.teleportTo(level, destX, destY, destZ, EnumSet.noneOf(RelativeMovement.class), yaw, pitch);
 
-        // Reset vertical momentum to prevent fall damage or unintended velocity carryover
+        // Reset vertical momentum to prevent unintended velocity carryover
         player.setDeltaMovement(player.getDeltaMovement().multiply(new Vec3(1.0D, 0.0D, 1.0D)));
 
         // Play elevator sound effect
-        level.playSound(null, toPos, SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0F, 1.0F);
+        try {
+            level.playSound(null, toPos, SoundEvents.ENDERMAN_TELEPORT, SoundSource.BLOCKS, 1.0F, 1.0F);
+        } catch (Throwable ignored) {}
     }
 }

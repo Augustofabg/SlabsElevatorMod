@@ -1,9 +1,0 @@
-{
-  "replace": false,
-  "values": [
-    {
-      "id": "#elevatorslabs:elevator_slabs",
-      "required": false
-    }
-  ]
-}

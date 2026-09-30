@@ -1,5 +1,6 @@
 package net.openslabs.elevatorslabs.client.gui;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,7 +11,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.openslabs.elevatorslabs.block.entity.ElevatorSlabBlockEntity;
 import net.openslabs.elevatorslabs.menu.ElevatorOptionsMenu;
 import net.openslabs.elevatorslabs.network.UpdateSlabOptionsPayload;
@@ -19,18 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Custom configuration screen for Elevator Slabs.
- * - Title "Elevator Options" rendered in pure white (0xFFFFFF).
- * - Directional starts unchecked (default false).
- * - Cardinal cross and "Hide arrow" are completely hidden when Directional is false.
- * - Checking Directional reveals "Hide arrow" and the cardinal cross.
- * - Dynamic cardinal cross based on player's current horizontal view direction:
- *     Top = front (playerFacing)
- *     Right = clockwise 90 deg (playerFacing.getClockWise())
- *     Bottom = opposite (playerFacing.getOpposite())
- *     Left = counter-clockwise 90 deg (playerFacing.getCounterClockWise())
- * - Active cardinal direction displays in green (#55FF55), unselected in white (#FFFFFF).
- * - "Remove camouflage" button is active only when camouflage is applied.
+ * Custom configuration screen for Elevator Slabs on Fabric 1.21.1.
+ * Ported directly from NeoForge 1.21.1 with Fabric networking (ClientPlayNetworking).
+ *
+ * Key behaviors:
+ * - "Remove camouflage" button active only when camouflage exists in the relevant half.
+ * - Cardinal cross + "Hide arrow" only visible when Directional is checked.
+ * - Bug Fix: For SlabType.TOP, canRemove checks getCamouflagedTopState() (not Bottom).
  */
 public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptionsMenu> {
 
@@ -57,7 +54,7 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         ElevatorSlabBlockEntity tile = this.menu.getBlockEntity();
         boolean initialDirectional = tile != null && tile.isDirectional();
         boolean initialHideArrow = tile != null && tile.isHideArrow();
-        boolean hasCamo = tile != null && tile.getCamouflagedBlock() != null;
+        boolean hasCamo = computeHasCamo(tile);
         this.selectedFacing = tile != null ? tile.getFacing() : Direction.NORTH;
 
         // Checkbox: Directional
@@ -81,7 +78,7 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         this.hideArrowButton.active = initialDirectional;
         addRenderableWidget(this.hideArrowButton);
 
-        // Button: Remove camouflage (visible at bottom left, active only if camo is present)
+        // Button: Remove camouflage (active only if relevant camo is present)
         this.resetCamoButton = Button.builder(Component.translatable("screen.elevatorid.elevator.reset_camo"), button -> {
             button.active = false;
             sendUpdate(true);
@@ -92,11 +89,7 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         this.resetCamoButton.active = hasCamo;
         addRenderableWidget(this.resetCamoButton);
 
-        // Cardinal Direction Selector buttons arranged dynamically relative to current player facing:
-        // - Top: current view direction of player (playerFacing)
-        // - Right: 90 deg clockwise (playerFacing.getClockWise())
-        // - Bottom: opposite of view (playerFacing.getOpposite())
-        // - Left: 90 deg counter-clockwise (playerFacing.getCounterClockWise())
+        // Cardinal Direction Selector
         Direction playerFacing = (Minecraft.getInstance().player != null)
                 ? Minecraft.getInstance().player.getDirection()
                 : this.menu.getPlayerFacing();
@@ -113,12 +106,44 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         Direction bottomDir = playerFacing.getOpposite();
         Direction leftDir = playerFacing.getCounterClockWise();
 
-        addFacingButton(crossX + 20, crossY, topDir, getTranslationKey(topDir));          // Top (Cima)
-        addFacingButton(crossX + 40, crossY + 20, rightDir, getTranslationKey(rightDir));    // Right (Direita)
-        addFacingButton(crossX + 20, crossY + 40, bottomDir, getTranslationKey(bottomDir)); // Bottom (Baixo)
-        addFacingButton(crossX, crossY + 20, leftDir, getTranslationKey(leftDir));        // Left (Esquerda)
+        addFacingButton(crossX + 20, crossY, topDir, getTranslationKey(topDir));
+        addFacingButton(crossX + 40, crossY + 20, rightDir, getTranslationKey(rightDir));
+        addFacingButton(crossX + 20, crossY + 40, bottomDir, getTranslationKey(bottomDir));
+        addFacingButton(crossX, crossY + 20, leftDir, getTranslationKey(leftDir));
 
         updateVisibility(initialDirectional);
+    }
+
+    /**
+     * Determines whether the "Remove camouflage" button should be active.
+     * BUG FIX: Correctly checks topCamo for SlabType.TOP and bottomCamo for SlabType.BOTTOM.
+     */
+    private boolean computeHasCamo(ElevatorSlabBlockEntity tile) {
+        if (tile == null) return false;
+
+        // Determine which half was clicked (for DOUBLE slabs)
+        net.minecraft.world.phys.HitResult hit = Minecraft.getInstance().hitResult;
+        boolean topClicked = false;
+        if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
+            topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
+        }
+
+        SlabType type = tile.getBlockState().hasProperty(SlabBlock.TYPE)
+                ? tile.getBlockState().getValue(SlabBlock.TYPE)
+                : SlabType.BOTTOM;
+
+        if (type == SlabType.TOP) {
+            // BUG FIX: TOP half → check camouflagedTopState (NOT bottom)
+            return tile.getCamouflagedTopState() != null;
+        } else if (type == SlabType.BOTTOM) {
+            return tile.getCamouflagedBottomState() != null;
+        } else { // DOUBLE
+            if (tile.isAppliedAsFullBlock()) {
+                return tile.getCamouflagedBottomState() != null;
+            } else {
+                return topClicked ? tile.getCamouflagedTopState() != null : tile.getCamouflagedBottomState() != null;
+            }
+        }
     }
 
     private static String getTranslationKey(Direction dir) {
@@ -161,7 +186,7 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         super.containerTick();
         ElevatorSlabBlockEntity tile = this.menu.getBlockEntity();
         if (tile != null) {
-            this.resetCamoButton.active = (tile.getCamouflagedBlock() != null);
+            this.resetCamoButton.active = computeHasCamo(tile);
         }
     }
 
@@ -178,14 +203,12 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        // Render title in pure white (#FFFFFF)
         guiGraphics.drawString(this.font, this.title, 8, 8, 0xFFFFFF, false);
     }
 
     /**
-     * Custom button widget for cardinal directions (E, N, S, W).
+     * Custom button widget for cardinal directions.
      * Renders active direction in bright green (#55FF55) and unselected directions in white (#FFFFFF).
-     * Completely hidden when directional mode is inactive.
      */
     private class FacingButton extends Button {
         private final Direction direction;
@@ -204,18 +227,13 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
                 return;
             }
 
-            // Hover highlight
             if (isHoveredOrFocused() && this.active) {
                 guiGraphics.fill(getX(), getY(), getX() + this.width, getY() + this.height, 0x80FFFFFF);
             }
 
             Font font = ElevatorOptionsScreen.this.font;
             boolean isSelected = (ElevatorOptionsScreen.this.selectedFacing == this.direction);
-
-            // Active/selected: #55FF55 (Green)
-            // Active/unselected: #FFFFFF (White)
             int textColor = isSelected ? 0x55FF55 : 0xFFFFFF;
-
             int textX = getX() + (this.width / 2);
             int textY = getY() + ((this.height - 8) / 2);
             guiGraphics.drawCenteredString(font, getMessage(), textX, textY, textColor);

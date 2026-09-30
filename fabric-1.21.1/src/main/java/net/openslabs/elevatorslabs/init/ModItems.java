@@ -14,11 +14,12 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * Registers BlockItems for all 16 Elevator Slab colors on Fabric 1.21.1.
+ * Registers BlockItems for all 16 Elevator Slab colors and the Ender Spindle.
  */
 public final class ModItems {
 
     private static final Map<DyeColor, BlockItem> ITEMS_MAP = new EnumMap<>(DyeColor.class);
+
     public static EnderSpindleItem ENDER_SPINDLE;
 
     public static void register() {
@@ -30,11 +31,10 @@ public final class ModItems {
 
         for (DyeColor color : DyeColor.values()) {
             String name = "elevator_slab_" + color.getName();
-            BlockItem item = new BlockItem(ModBlocks.getByColor(color), new Item.Properties());
-            Registry.register(
+            BlockItem item = Registry.register(
                     BuiltInRegistries.ITEM,
                     ResourceLocation.fromNamespaceAndPath(ElevatorSlabsMod.MOD_ID, name),
-                    item
+                    new BlockItem(ModBlocks.getByColor(color), new Item.Properties())
             );
             ITEMS_MAP.put(color, item);
         }
@@ -44,7 +44,7 @@ public final class ModItems {
         return ITEMS_MAP.get(color);
     }
 
-    public static Map<DyeColor, BlockItem> getItemsByColor() {
+    public static Map<DyeColor, BlockItem> getSlabItemsByColor() {
         return Collections.unmodifiableMap(ITEMS_MAP);
     }
 

@@ -7,6 +7,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.openslabs.elevatorslabs.ElevatorSlabsMod;
 
+/**
+ * Tag keys used by Elevator Slabs for cross-mod compatibility.
+ */
 public final class ModTags {
 
     private ModTags() {}

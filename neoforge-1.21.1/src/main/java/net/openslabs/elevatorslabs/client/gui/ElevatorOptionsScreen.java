@@ -57,7 +57,26 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         ElevatorSlabBlockEntity tile = this.menu.getBlockEntity();
         boolean initialDirectional = tile != null && tile.isDirectional();
         boolean initialHideArrow = tile != null && tile.isHideArrow();
-        boolean hasCamo = tile != null && tile.getCamouflagedBlock() != null;
+        boolean hasCamo = false;
+        if (tile != null) {
+            net.minecraft.world.phys.HitResult hit = net.minecraft.client.Minecraft.getInstance().hitResult;
+            boolean topClicked = false;
+            if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
+                topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
+            }
+            net.minecraft.world.level.block.state.properties.SlabType type = tile.getBlockState().getValue(net.minecraft.world.level.block.SlabBlock.TYPE);
+            if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) {
+                hasCamo = tile.getCamouflagedBottomState() != null;
+            } else if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) {
+                hasCamo = tile.getCamouflagedTopState() != null;
+            } else {
+                if (tile.isAppliedAsFullBlock()) {
+                    hasCamo = tile.getCamouflagedBottomState() != null;
+                } else {
+                    hasCamo = topClicked ? tile.getCamouflagedTopState() != null : tile.getCamouflagedBottomState() != null;
+                }
+            }
+        }
         this.selectedFacing = tile != null ? tile.getFacing() : Direction.NORTH;
 
         // Checkbox: Directional
@@ -161,7 +180,25 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
         super.containerTick();
         ElevatorSlabBlockEntity tile = this.menu.getBlockEntity();
         if (tile != null) {
-            this.resetCamoButton.active = (tile.getCamouflagedBlock() != null);
+            boolean hasCamo = false;
+            net.minecraft.world.phys.HitResult hit = net.minecraft.client.Minecraft.getInstance().hitResult;
+            boolean topClicked = false;
+            if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
+                topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
+            }
+            net.minecraft.world.level.block.state.properties.SlabType type = tile.getBlockState().getValue(net.minecraft.world.level.block.SlabBlock.TYPE);
+            if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) {
+                hasCamo = tile.getCamouflagedBottomState() != null;
+            } else if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) {
+                hasCamo = tile.getCamouflagedTopState() != null;
+            } else {
+                if (tile.isAppliedAsFullBlock()) {
+                    hasCamo = tile.getCamouflagedBottomState() != null;
+                } else {
+                    hasCamo = topClicked ? tile.getCamouflagedTopState() != null : tile.getCamouflagedBottomState() != null;
+                }
+            }
+            this.resetCamoButton.active = hasCamo;
         }
     }
 
