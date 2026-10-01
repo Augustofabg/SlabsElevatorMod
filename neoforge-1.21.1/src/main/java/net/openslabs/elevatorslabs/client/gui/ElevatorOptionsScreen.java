@@ -147,12 +147,20 @@ public class ElevatorOptionsScreen extends AbstractContainerScreen<ElevatorOptio
     }
 
     private void sendUpdate(boolean resetCamo) {
+        // Determine which half was targeted when the GUI was opened
+        boolean topClicked = false;
+        net.minecraft.world.phys.HitResult hit = Minecraft.getInstance().hitResult;
+        if (hit instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
+            topClicked = (blockHit.getLocation().y - blockHit.getBlockPos().getY()) >= 0.5D;
+        }
+
         PacketDistributor.sendToServer(new UpdateSlabOptionsPayload(
                 this.menu.getPos(),
                 this.dirButton.selected(),
                 this.hideArrowButton.selected(),
                 this.selectedFacing,
-                resetCamo
+                resetCamo,
+                topClicked
         ));
     }
 

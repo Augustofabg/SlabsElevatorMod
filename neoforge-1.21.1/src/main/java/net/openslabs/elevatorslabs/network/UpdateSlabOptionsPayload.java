@@ -17,7 +17,8 @@ public record UpdateSlabOptionsPayload(
         boolean directional,
         boolean hideArrow,
         Direction facing,
-        boolean resetCamo
+        boolean resetCamo,
+        boolean targetTopHalf
 ) implements CustomPacketPayload {
 
     public static final Type<UpdateSlabOptionsPayload> TYPE =
@@ -34,6 +35,7 @@ public record UpdateSlabOptionsPayload(
             ByteBufCodecs.BOOL, UpdateSlabOptionsPayload::hideArrow,
             DIRECTION_CODEC, UpdateSlabOptionsPayload::facing,
             ByteBufCodecs.BOOL, UpdateSlabOptionsPayload::resetCamo,
+            ByteBufCodecs.BOOL, UpdateSlabOptionsPayload::targetTopHalf,
             UpdateSlabOptionsPayload::new
     );
 

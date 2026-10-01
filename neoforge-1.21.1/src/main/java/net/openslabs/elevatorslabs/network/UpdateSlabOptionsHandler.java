@@ -55,9 +55,7 @@ public final class UpdateSlabOptionsHandler {
                 } else {
                     net.minecraft.world.level.block.state.BlockState currentState = level.getBlockState(pos);
                     net.minecraft.world.level.block.state.properties.SlabType type = currentState.getValue(net.minecraft.world.level.block.SlabBlock.TYPE);
-                    boolean targetTop = slabEntity.isLastTargetedTopHalf();
-                    if (type == net.minecraft.world.level.block.state.properties.SlabType.TOP) targetTop = true;
-                    if (type == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM) targetTop = false;
+                    boolean targetTop = payload.targetTopHalf();
 
                     if (targetTop) {
                         BlockState oldTop = slabEntity.getCamouflagedTop();

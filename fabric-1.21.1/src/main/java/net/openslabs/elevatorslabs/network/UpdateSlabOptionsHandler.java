@@ -64,12 +64,8 @@ public final class UpdateSlabOptionsHandler {
                         ? currentState.getValue(SlabBlock.TYPE)
                         : SlabType.BOTTOM;
 
-                // Determine the target half:
-                // - For single slabs (TOP or BOTTOM): use the block's type directly
-                // - For DOUBLE slabs: use the lastTargetedTopHalf set when the GUI was opened
-                boolean targetTop = slabEntity.isLastTargetedTopHalf();
-                if (type == SlabType.TOP) targetTop = true;    // BUG FIX: TOP slab always targets top
-                if (type == SlabType.BOTTOM) targetTop = false; // BOTTOM slab always targets bottom
+                // Determine the target half from the client-sent payload
+                boolean targetTop = payload.targetTopHalf();
 
                 if (targetTop) {
                     // CASE A: Remove top camouflage (SlabType.TOP or upper half of DOUBLE)
