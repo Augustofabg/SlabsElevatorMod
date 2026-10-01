@@ -130,6 +130,37 @@ jobs:
           echo "Generated body prefix:"
           cat /tmp/release_body.md
 
+      # ── 6.5. Rename Compiled Jars ──────────────────────────────────────────
+      - name: Rename Compiled Jars
+        run: |
+          TAG="${{ steps.metadata.outputs.tag }}"
+          # Parse mc_version and mod_version from <mc>-v<mod> (e.g., 1.21.1-v1.0.5)
+          MC_VERSION="${TAG%-v*}"
+          MOD_VERSION="${TAG#*-v}"
+          
+          echo "Parsed MC_VERSION: $MC_VERSION"
+          echo "Parsed MOD_VERSION: $MOD_VERSION"
+          
+          mkdir -p final-assets
+          
+          # Find the main fabric jar (excluding -dev, -sources, etc.)
+          FABRIC_JAR=$(find fabric-1.21.1/build/libs -maxdepth 1 -name "elevatorslabs-*.jar" ! -name "*-dev.jar" ! -name "*-sources.jar" | head -n 1)
+          if [ -n "$FABRIC_JAR" ]; then
+            echo "Found Fabric jar: $FABRIC_JAR"
+            cp "$FABRIC_JAR" "final-assets/elevatorslabs-${MC_VERSION}-${MOD_VERSION}-fabric.jar"
+          else
+            echo "Fabric jar not found!"
+          fi
+          
+          # Find the main neoforge jar (excluding -dev, -sources, etc.)
+          NEOFORGE_JAR=$(find neoforge-1.21.1/build/libs -maxdepth 1 -name "elevatorslabs-*.jar" ! -name "*-dev.jar" ! -name "*-sources.jar" | head -n 1)
+          if [ -n "$NEOFORGE_JAR" ]; then
+            echo "Found NeoForge jar: $NEOFORGE_JAR"
+            cp "$NEOFORGE_JAR" "final-assets/elevatorslabs-${MC_VERSION}-${MOD_VERSION}-neoforge.jar"
+          else
+            echo "NeoForge jar not found!"
+          fi
+
       # ── 7. Publish GitHub Release with Assets ──────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -141,8 +172,8 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            fabric-1.21.1/build/libs/elevatorslabs-*.jar
-            neoforge-1.21.1/build/libs/elevatorslabs-*.jar
+            final-assets/elevatorslabs-*-fabric.jar
+            final-assets/elevatorslabs-*-neoforge.jar
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
