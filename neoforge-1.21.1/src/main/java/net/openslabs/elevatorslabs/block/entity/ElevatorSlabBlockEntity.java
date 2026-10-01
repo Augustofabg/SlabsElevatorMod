@@ -64,6 +64,24 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider
     private Block fullBlockSource = null;
 
 
+    public void batchClearOnBreak(boolean brokeTop) {
+        if (this.appliedAsFullBlock) {
+            this.appliedAsFullBlock = false;
+            this.fullBlockSource = null;
+            this.camouflagedTopState = null;
+            this.camouflagedBottomState = null;
+        } else {
+            if (brokeTop) {
+                this.camouflagedTopState = null;
+            } else {
+                this.camouflagedBottomState = null;
+            }
+        }
+        setChanged();
+        requestModelDataUpdate();
+        notifyUpdate();
+    }
+
     public ElevatorSlabBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ELEVATOR_SLAB_BLOCK_ENTITY.get(), pos, state);
     }

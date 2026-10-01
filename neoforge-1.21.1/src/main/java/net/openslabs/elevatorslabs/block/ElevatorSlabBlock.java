@@ -193,16 +193,7 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
                 // SE FOR CRIATIVO: NÃO DROPAR ABSOLUTAMENTE NADA!
 
                 // ATUALIZAÇÃO DA BLOCK ENTITY:
-                if (wasFullBlock) {
-                    elevatorBe.setAppliedAsFullBlock(false);
-                    elevatorBe.setFullBlockSource(null);
-                }
-                if (brokeTop) {
-                    elevatorBe.setCamouflagedTopState(null);
-                } else {
-                    elevatorBe.setCamouflagedBottomState(null);
-                }
-            elevatorBe.setChanged();
+                elevatorBe.batchClearOnBreak(brokeTop);
 
             // ATUALIZAR MUNDO E SINCRONIZAR CLIENTE:
             level.setBlock(pos, newState, 3);

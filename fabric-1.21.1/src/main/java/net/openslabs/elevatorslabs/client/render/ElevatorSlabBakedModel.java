@@ -96,15 +96,16 @@ public class ElevatorSlabBakedModel extends ForwardingBakedModel {
             }
         }
 
-        // FALLBACK CHANNEL: Direct BlockEntity access (transitional states, chunk boundaries)
-        if (bottomCamouflage == null && topCamouflage == null) {
-            BlockEntity be = blockView.getBlockEntity(pos);
-            if (be instanceof ElevatorSlabBlockEntity elevatorBe) {
-                bottomCamouflage = elevatorBe.getCamouflagedBottomState();
-                topCamouflage = elevatorBe.getCamouflagedTopState();
-                appliedAsFullBlock = elevatorBe.isAppliedAsFullBlock();
-                fullBlockSource = elevatorBe.getFullBlockSource();
-            }
+        // FALLBACK CHANNEL: Direct BlockEntity access
+        // ALWAYS cross-check with the live BlockEntity to avoid stale attachment data.
+        // The attachment snapshot may lag behind the actual BE state during chunk rebuilds
+        // triggered by setBlock/sendBlockUpdated in onPlayerBreakBlock.
+        BlockEntity be = blockView.getBlockEntity(pos);
+        if (be instanceof ElevatorSlabBlockEntity elevatorBe) {
+            bottomCamouflage = elevatorBe.getCamouflagedBottomState();
+            topCamouflage = elevatorBe.getCamouflagedTopState();
+            appliedAsFullBlock = elevatorBe.isAppliedAsFullBlock();
+            fullBlockSource = elevatorBe.getFullBlockSource();
         }
 
         // === Step 2: Emit quads based on SlabType ===

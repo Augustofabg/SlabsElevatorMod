@@ -40,6 +40,7 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
         private final BlockState bottomCamouflage;
         @Nullable
         private final BlockState topCamouflage;
+        private final boolean appliedAsFullBlock;
         @Nullable
         private final Direction direction;
         @Nullable
@@ -47,13 +48,14 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
         private final int hashCode;
 
         public CacheKey(SlabType slabType, @Nullable BlockState bottomCamouflage, @Nullable BlockState topCamouflage,
-                        @Nullable Direction direction, @Nullable RenderType renderType) {
+                        boolean appliedAsFullBlock, @Nullable Direction direction, @Nullable RenderType renderType) {
             this.slabType = slabType;
             this.bottomCamouflage = bottomCamouflage;
             this.topCamouflage = topCamouflage;
+            this.appliedAsFullBlock = appliedAsFullBlock;
             this.direction = direction;
             this.renderType = renderType;
-            this.hashCode = Objects.hash(slabType, bottomCamouflage, topCamouflage, direction, renderType);
+            this.hashCode = Objects.hash(slabType, bottomCamouflage, topCamouflage, appliedAsFullBlock, direction, renderType);
         }
 
         @Override
@@ -63,6 +65,7 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
             return this.slabType == other.slabType
                     && Objects.equals(this.bottomCamouflage, other.bottomCamouflage)
                     && Objects.equals(this.topCamouflage, other.topCamouflage)
+                    && this.appliedAsFullBlock == other.appliedAsFullBlock
                     && this.direction == other.direction
                     && Objects.equals(this.renderType, other.renderType);
         }
@@ -116,8 +119,10 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
         if (topCamouflage == null) {
             topCamouflage = modelData.get(ElevatorSlabBlockEntity.CAMO_TOP);
         }
+        Boolean appliedAsFull = modelData.get(ElevatorSlabBlockEntity.APPLIED_AS_FULL_BLOCK);
+        boolean appliedAsFullBlock = appliedAsFull != null && appliedAsFull;
 
-        CacheKey key = new CacheKey(slabType, bottomCamouflage, topCamouflage, side, renderType);
+        CacheKey key = new CacheKey(slabType, bottomCamouflage, topCamouflage, appliedAsFullBlock, side, renderType);
         List<BakedQuad> cached = this.quadCache.get(key);
         if (cached != null) {
             return cached;
@@ -147,7 +152,6 @@ public class ElevatorSlabBakedModel extends BakedModelWrapper<BakedModel> {
         }
         // CASO 3: LAJE DUPLA (DOUBLE)
         else if (slabType == SlabType.DOUBLE) {
-            Boolean appliedAsFull = modelData.get(ElevatorSlabBlockEntity.APPLIED_AS_FULL_BLOCK);
             Block fullBlock = modelData.get(ElevatorSlabBlockEntity.FULL_BLOCK_SOURCE);
             if (Boolean.TRUE.equals(appliedAsFull) && fullBlock != null) {
                 BlockState fullState = fullBlock.defaultBlockState();
