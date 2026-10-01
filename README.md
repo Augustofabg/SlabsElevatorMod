@@ -15,7 +15,6 @@ Slab variants of the elevators from OpenBlocks Elevator, for more compact and be
 <a href="https://github.com/Augustofabg/SlabsElevatorMod">
  <img alt="Available on github" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/github_vector.svg">
 </a>
-
 <br/>
 <br/>
 
