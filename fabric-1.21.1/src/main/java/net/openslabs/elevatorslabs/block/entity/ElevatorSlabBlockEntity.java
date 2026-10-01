@@ -388,6 +388,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
         notifyUpdate();
     }
 
+
     @Nullable
     public BlockState getCamouflagedBlock() {
         BlockState state = getBlockState();

@@ -22,6 +22,9 @@
       "net.openslabs.elevatorslabs.client.ElevatorSlabsClient"
     ]
   },
+  "mixins": [
+    "elevatorslabs.mixins.client.json"
+  ],
   "depends": {
     "fabricloader": ">=0.16.0",
     "minecraft": "~1.21.1",

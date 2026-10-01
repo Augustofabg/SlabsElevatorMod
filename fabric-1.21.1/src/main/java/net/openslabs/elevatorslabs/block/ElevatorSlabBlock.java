@@ -149,23 +149,14 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
             return true;
         }
 
-        // Raycast precise Y
-        double localY;
-        HitResult hit = player.pick(20.0D, 0.0F, false);
-        if (hit.getType() == HitResult.Type.BLOCK) {
-            localY = hit.getLocation().y - pos.getY();
-        } else {
-            localY = getHitY(level, pos, player);
-        }
-
-        // CENTRAL ZONE (0.45 <= localY <= 0.55): break BOTH halves at once
-        if (localY >= 0.45D && localY <= 0.55D) {
-            // Let normal break handle full removal
+        Boolean brokeTopOpt = getBrokeTop(pos, player.getEyePosition(), player.getViewVector(1.0F), player.pick(20.0D, 0.0F, false));
+        if (brokeTopOpt == null) {
+            // CENTRAL ZONE: break BOTH halves at once
             return true;
         }
 
         if (blockEntity instanceof ElevatorSlabBlockEntity elevatorBe) {
-            boolean brokeTop = localY > 0.55D;
+            boolean brokeTop = brokeTopOpt;
             // localY < 0.45 → broke bottom (new state = TOP)
             // localY > 0.55 → broke top (new state = BOTTOM)
             BlockState newState = state.setValue(SlabBlock.TYPE, brokeTop ? SlabType.BOTTOM : SlabType.TOP);
@@ -279,16 +270,25 @@ public class ElevatorSlabBlock extends SlabBlock implements EntityBlock {
         // If same block changing type (via onPlayerBreakBlock), don't call super to preserve BlockEntity
     }
 
-    protected double getHitY(Level level, BlockPos pos, Player player) {
-        Vec3 eyePos = player.getEyePosition();
-        Vec3 viewVec = player.getViewVector(1.0F);
-        Vec3 endPos = eyePos.add(viewVec.scale(20.0D));
-        AABB box = new AABB(pos);
-        Optional<Vec3> boxHit = box.clip(eyePos, endPos);
-        if (boxHit.isPresent()) {
-            return boxHit.get().y - pos.getY();
+    @Nullable
+    public static Boolean getBrokeTop(BlockPos pos, Vec3 eyePos, Vec3 viewVec, @Nullable HitResult hit) {
+        double localY;
+        if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
+            localY = hit.getLocation().y - pos.getY();
+        } else {
+            Vec3 endPos = eyePos.add(viewVec.scale(20.0D));
+            AABB box = new AABB(pos);
+            Optional<Vec3> boxHit = box.clip(eyePos, endPos);
+            if (boxHit.isPresent()) {
+                localY = boxHit.get().y - pos.getY();
+            } else {
+                localY = (eyePos.y < pos.getY() + 0.5D) ? 0.25D : 0.75D;
+            }
         }
-        return (eyePos.y < pos.getY() + 0.5D) ? 0.25D : 0.75D;
+        if (localY >= 0.45D && localY <= 0.55D) {
+            return null; // Both halves
+        }
+        return localY > 0.55D;
     }
 
     @Override
