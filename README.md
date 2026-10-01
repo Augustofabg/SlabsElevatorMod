@@ -12,6 +12,9 @@ Slab variants of the elevators from OpenBlocks Elevator, for more compact and be
 <a href="https://www.curseforge.com/minecraft/mc-mods/SEU-MOD">
   <img height="56" alt="Available on CurseForge" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg">
 </a>
+<a href="https://github.com/Augustofabg/SlabsElevatorMod">
+ <img alt="Available on github" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/github_vector.svg">
+</a>
 
 <br/>
 <br/>
