@@ -62,9 +62,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements MenuProvider
     private boolean appliedAsFullBlock = false;
     @Nullable
     private Block fullBlockSource = null;
-    private transient boolean lastTargetedTopHalf = false;
-    public void setLastTargetedTopHalf(boolean top) { this.lastTargetedTopHalf = top; }
-    public boolean isLastTargetedTopHalf() { return this.lastTargetedTopHalf; }
+
 
     public ElevatorSlabBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ELEVATOR_SLAB_BLOCK_ENTITY.get(), pos, state);

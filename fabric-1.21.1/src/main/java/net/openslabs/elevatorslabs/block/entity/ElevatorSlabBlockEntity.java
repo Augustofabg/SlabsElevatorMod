@@ -57,10 +57,7 @@ public class ElevatorSlabBlockEntity extends BlockEntity implements ExtendedScre
     @Nullable
     private Block fullBlockSource = null;
 
-    /** Transient: tracks which half was targeted when opening GUI (used for camo removal). */
-    private transient boolean lastTargetedTopHalf = false;
-    public void setLastTargetedTopHalf(boolean top) { this.lastTargetedTopHalf = top; }
-    public boolean isLastTargetedTopHalf() { return this.lastTargetedTopHalf; }
+
 
     public ElevatorSlabBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ELEVATOR_SLAB_BLOCK_ENTITY, pos, state);
