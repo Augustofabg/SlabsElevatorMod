@@ -6,10 +6,10 @@ Slab variants of the elevators from OpenBlocks Elevator, for more compact and be
 
 <br/>
 
-<a href="https://modrinth.com/mod/SEU-MOD">
+<a href="https://modrinth.com/mod/slabs-elevator">
   <img height="56" alt="Available on Modrinth" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg">
 </a>
-<a href="https://www.curseforge.com/minecraft/mc-mods/SEU-MOD">
+<a href="https://www.curseforge.com/minecraft/mc-mods/slabs-elevator">
   <img height="56" alt="Available on CurseForge" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg">
 </a>
 <a href="https://github.com/Augustofabg/SlabsElevatorMod">
